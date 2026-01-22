@@ -1,0 +1,24 @@
+class: Repository
+table: repositories
+fields:
+  userId: int
+  owner: String
+  repo: String
+  githubRepoId: int
+  isPrivate: bool
+  inAppNotifications: bool
+  pushNotifications: bool
+  notificationLevel: String
+  lastSyncedAt: DateTime?
+  lastPrCursor: DateTime?
+  lastIssueCursor: DateTime?
+  createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
+indexes:
+  idx_repositories_user_owner_repo:
+    fields: userId, owner, repo
+    unique: true
+  idx_repositories_github_repo_id:
+    fields: githubRepoId
+  idx_repositories_user_id:
+    fields: userId

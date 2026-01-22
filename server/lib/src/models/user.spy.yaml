@@ -1,0 +1,19 @@
+class: User
+table: users
+fields:
+  githubId: int
+  githubUsername: String
+  displayName: String?
+  avatarUrl: String?
+  encryptedPat: String, scope=serverOnly
+  onesignalPlayerId: String?
+  lastValidatedAt: DateTime?
+  createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
+indexes:
+  idx_users_github_id:
+    fields: githubId
+    unique: true
+  idx_users_github_username:
+    fields: githubUsername
+    unique: true

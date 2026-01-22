@@ -1,0 +1,26 @@
+class: PullRequest
+table: pull_requests
+fields:
+  repositoryId: int
+  githubId: int
+  number: int
+  title: String
+  body: String?
+  author: String
+  state: String
+  htmlUrl: String
+  githubCreatedAt: DateTime
+  githubUpdatedAt: DateTime
+  isRead: bool
+  createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
+indexes:
+  idx_pull_requests_repo_number:
+    fields: repositoryId, number
+    unique: true
+  idx_pull_requests_repo_state:
+    fields: repositoryId, state
+  idx_pull_requests_repo_unread:
+    fields: repositoryId, isRead
+  idx_pull_requests_github_updated:
+    fields: repositoryId, githubUpdatedAt

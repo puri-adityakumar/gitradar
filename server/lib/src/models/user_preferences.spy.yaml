@@ -1,0 +1,11 @@
+class: UserPreferences
+table: user_preferences
+fields:
+  userId: int
+  themeMode: String
+  createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
+indexes:
+  idx_user_preferences_user_id:
+    fields: userId
+    unique: true

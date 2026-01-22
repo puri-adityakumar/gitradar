@@ -1,0 +1,36 @@
+# Configuration for the production environment.
+# Note: Sensitive values should be overridden via environment variables in production.
+
+# Configuration for the main API server.
+apiServer:
+  port: 8080
+  publicHost: api.gitradar.example.com
+  publicPort: 443
+  publicScheme: https
+
+# Configuration for the Insights server.
+insightsServer:
+  port: 8081
+  publicHost: insights.gitradar.example.com
+  publicPort: 443
+  publicScheme: https
+
+# Configuration for the web server.
+webServer:
+  port: 8082
+  publicHost: gitradar.example.com
+  publicPort: 443
+  publicScheme: https
+
+# Database configuration - override with environment variables in production
+database:
+  host: localhost
+  port: 5432
+  name: gitradar
+  user: postgres
+
+# Redis configuration
+redis:
+  enabled: true
+  host: localhost
+  port: 6379

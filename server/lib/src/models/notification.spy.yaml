@@ -1,0 +1,19 @@
+class: Notification
+table: notifications
+fields:
+  userId: int
+  type: String
+  title: String
+  message: String
+  repositoryId: int
+  pullRequestId: int?
+  issueId: int?
+  isRead: bool
+  createdAt: DateTime, default=now
+indexes:
+  idx_notifications_user_unread:
+    fields: userId, isRead
+  idx_notifications_user_created:
+    fields: userId, createdAt
+  idx_notifications_repository:
+    fields: repositoryId

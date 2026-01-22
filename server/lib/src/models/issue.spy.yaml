@@ -1,0 +1,27 @@
+class: Issue
+table: issues
+fields:
+  repositoryId: int
+  githubId: int
+  number: int
+  title: String
+  body: String?
+  author: String
+  state: String
+  labelsJson: String?
+  htmlUrl: String
+  githubCreatedAt: DateTime
+  githubUpdatedAt: DateTime
+  isRead: bool
+  createdAt: DateTime, default=now
+  updatedAt: DateTime, default=now
+indexes:
+  idx_issues_repo_number:
+    fields: repositoryId, number
+    unique: true
+  idx_issues_repo_state:
+    fields: repositoryId, state
+  idx_issues_repo_unread:
+    fields: repositoryId, isRead
+  idx_issues_github_updated:
+    fields: repositoryId, githubUpdatedAt

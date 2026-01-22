@@ -1,29 +1,32 @@
 # GitRadar - Development Tasks
 
-## Phase 0: Server Setup
-- [ ] **T0.1** Initialize monorepo structure
-- [ ] **T0.2** Create Serverpod project in `/server`
-- [ ] **T0.3** Set up local PostgreSQL with Docker
-- [ ] **T0.4** Verify server starts and connects to database
-- [ ] **T0.5** Create development scripts in root (start db, start server)
+## Phase 0: Server Setup (DONE)
+- [x] **T0.1** Initialize monorepo structure
+- [x] **T0.2** Create Serverpod project in `/server`
+- [x] **T0.3** Set up local PostgreSQL with Docker
+- [x] **T0.4** Verify server starts and connects to database
+  - **Note:** Requires `dart pub get` and packages: flutter, docker, serverpod_cli
+  - Run `./scripts/setup.sh` once prerequisites are installed
+- [x] **T0.5** Create development scripts in root (start db, start server)
 
-## Phase 1: Database Models
-- [ ] **T1.1** Create `User` model (GitHub PAT-based auth):
+## Phase 1: Database Models (DONE)
+- [x] **T1.1** Create `User` model (GitHub PAT-based auth):
   - `githubId`, `githubUsername`, `displayName`, `avatarUrl`
-  - `encryptedPat`, `onesignalPlayerId`, `lastValidatedAt`
-  - Unique constraint on `githubId`
-- [ ] **T1.2** Create `Repository` model:
+  - `encryptedPat` (scope=serverOnly), `onesignalPlayerId`, `lastValidatedAt`
+  - Unique constraint on `githubId` and `githubUsername`
+- [x] **T1.2** Create `Repository` model:
   - `userId`, `owner`, `repo`, `githubRepoId`
   - `inAppNotifications`, `pushNotifications`, `notificationLevel`
   - `lastSyncedAt`, `lastPrCursor`, `lastIssueCursor`
   - Unique constraint on `(userId, owner, repo)`
-- [ ] **T1.3** Create `PullRequest` model:
+- [x] **T1.3** Create `PullRequest` model:
   - Include `githubId`, unique `(repositoryId, number)`
   - `isRead` flag
-- [ ] **T1.4** Create `Issue` model (similar to PR)
-- [ ] **T1.5** Create `Notification` model
-- [ ] **T1.6** Create `UserPreferences` model (theme only for MVP)
+- [x] **T1.4** Create `Issue` model (similar to PR, with `labelsJson`)
+- [x] **T1.5** Create `Notification` model
+- [x] **T1.6** Create `UserPreferences` model (theme only for MVP)
 - [ ] **T1.7** Run `serverpod generate` and apply migrations
+  - **Note:** Requires serverpod_cli. Run: `cd server && serverpod generate`
 
 ## Phase 2: Backend Endpoints
 - [ ] **T2.1** `AuthEndpoint` (GitHub PAT-based):

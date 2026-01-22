@@ -1,0 +1,9 @@
+include: package:lints/recommended.yaml
+
+linter:
+  rules:
+    prefer_single_quotes: true
+    always_declare_return_types: true
+    avoid_print: false  # Allow print during development
+    prefer_const_constructors: true
+    prefer_const_declarations: true
