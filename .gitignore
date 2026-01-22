@@ -1,0 +1,48 @@
+# Dependencies
+.dart_tool/
+.packages
+.pub/
+build/
+pubspec.lock
+
+# Flutter/Dart
+*.iml
+*.ipr
+*.iws
+.idea/
+*.log
+
+# Serverpod generated
+**/generated/
+**/migrations/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Build outputs
+/build/
+*.apk
+*.aab
+*.ipa
+*.app
+
+# Docker
+docker-compose.override.yml
+
+# Coverage
+coverage/
+.dart_tool/
+
+# Credentials (never commit)
+**/config/passwords.yaml
+**/config/credentials.json
+*.pem
+*.key
