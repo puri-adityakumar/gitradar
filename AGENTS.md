@@ -111,10 +111,12 @@ class RepositoryEndpoint extends Endpoint {
 
 ### Authentication
 
-- Use Serverpod's built-in auth module
-- Every endpoint method receives `Session session` - use it for auth checks
-- GitHub PAT stored server-side only, encrypted
+- **No Serverpod auth module** - uses simple GitHub PAT-based auth
+- User submits PAT → Server validates via `GET /user` → Creates/updates User record
+- User identity derived from GitHub (githubId, username, displayName, avatarUrl)
+- GitHub PAT stored server-side only, AES-256 encrypted
 - Never return GitHub tokens to client
+- Session managed via Serverpod session tokens
 
 ### Database Models
 
@@ -152,18 +154,19 @@ indexes:
 ## MVP Scope Boundaries
 
 ### ✅ IN SCOPE (Implement these)
-- Serverpod auth (email/password) + GitHub PAT storage
+- GitHub PAT-based auth (no email/password, user identity from GitHub API)
 - Repository CRUD (add/list/remove, max 10 per user)
+- Per-repository notification settings (in-app + push toggles)
 - Periodic sync via Serverpod scheduler (every 5-10 min)
 - Store last 50 PRs/Issues per repo
 - In-app notifications with mark read/unread
+- Push notifications via OneSignal (per-repository)
 - 4 screens: Login, Repos, Activity, Settings
 - Light/Dark theme
 
 ### ❌ OUT OF SCOPE (Do NOT implement unless explicitly asked)
 - GitHub OAuth flow (use PAT for MVP)
 - Webhooks
-- Push notifications (FCM)
 - Digest mode / smart filtering
 - Full PR/Issue detail screens (link to GitHub instead)
 - Comments fetching

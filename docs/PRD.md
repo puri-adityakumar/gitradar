@@ -21,19 +21,20 @@ Never miss critical repository updates. GitRadar delivers a clean, distraction-f
 > **Important:** This section defines what will be built for the hackathon. Features outside this scope are deferred to post-hackathon phases.
 
 ### In Scope ✅
-- **Authentication:** Serverpod auth (email/password registration)
-- **GitHub Integration:** Personal Access Token (PAT) input, stored server-side encrypted
+- **Authentication:** GitHub PAT-based login (no email/password). User identity derived from GitHub API (`GET /user`)
+- **GitHub Integration:** Personal Access Token (PAT) input, stored server-side encrypted. User profile (name, avatar, username) fetched from GitHub
 - **Repository Management:** Add/list/remove repos (max 10 per user)
 - **Sync:** Periodic polling every 5-10 minutes via Serverpod scheduler
 - **Data Limits:** Store last 50 PRs and 50 Issues per repository
-- **Notifications:** In-app only, with mark read/unread
+- **Notifications:**
+  - In-app notifications with mark read/unread
+  - Push notifications via OneSignal (per-repository settings)
 - **UI Screens:** 4 total - Login, Repositories, Activity, Settings
 - **Theme:** Light/Dark mode toggle
 
 ### Out of Scope ❌ (Post-MVP)
 - GitHub OAuth flow (use PAT for MVP)
 - Webhooks for real-time updates
-- Push notifications (FCM)
 - Digest mode / smart filtering
 - Full PR/Issue detail screens (link to GitHub instead)
 - Comments fetching and display
@@ -103,8 +104,8 @@ GitRadar provides a unified, intelligent monitoring layer with:
 
 **External Integration:**
 - GitHub REST API v3
-- Optional: GitHub Webhooks for real-time events
-- Optional: Firebase Cloud Messaging for push notifications
+- OneSignal for push notifications (per-repository)
+- Optional: GitHub Webhooks for real-time events (post-MVP)
 
 **Deployment:**
 - Backend: Serverpod Cloud
@@ -147,7 +148,8 @@ GitRadar provides a unified, intelligent monitoring layer with:
                │
 ┌──────────────▼───────────────────────────┐
 │       PostgreSQL Database                │
-│  • repositories                          │
+│  • users (GitHub identity + PAT)         │
+│  • repositories (with notification prefs)│
 │  • pull_requests                         │
 │  • issues                                │
 │  • notifications                         │
@@ -163,23 +165,29 @@ GitRadar provides a unified, intelligent monitoring layer with:
 
 ### Data Models
 
-> **Authentication:** Uses Serverpod's built-in auth module. User model is managed by `serverpod_auth`.
+> **Authentication:** Simple GitHub PAT-based auth. No Serverpod auth module needed. User identity is derived from GitHub API.
 
-**GithubCredential** (separate from preferences for security)
+**User** (derived from GitHub PAT validation)
 ```yaml
-class: GithubCredential
-table: github_credentials
+class: User
+table: users
 fields:
   id: int (primary key)
-  userId: int (foreign key, unique)
-  encryptedToken: String         # AES-256 encrypted, server-side only
-  tokenScopes: String?           # Comma-separated scopes
-  lastValidatedAt: DateTime?
+  githubId: int                  # GitHub's user ID (stable identifier)
+  githubUsername: String         # GitHub login (e.g., "octocat")
+  displayName: String?           # GitHub name (e.g., "The Octocat")
+  avatarUrl: String?             # GitHub avatar URL
+  encryptedPat: String           # AES-256 encrypted PAT, server-side only
+  onesignalPlayerId: String?     # OneSignal device ID for push notifications
+  lastValidatedAt: DateTime?     # Last PAT validation timestamp
   createdAt: DateTime
   updatedAt: DateTime
 indexes:
-  idx_user:
-    fields: userId
+  idx_github_id:
+    fields: githubId
+    unique: true
+  idx_github_username:
+    fields: githubUsername
     unique: true
 ```
 
@@ -194,7 +202,10 @@ fields:
   repo: String                   # GitHub repo name
   githubRepoId: int              # GitHub's stable ID (survives renames)
   isPrivate: bool
-  notificationLevel: String (all|mentions|none)
+  # Per-repository notification settings
+  inAppNotifications: bool       # Enable in-app notifications (default: true)
+  pushNotifications: bool        # Enable OneSignal push notifications (default: false)
+  notificationLevel: String (all|mentions|none)  # What triggers notifications
   lastSyncedAt: DateTime?
   lastPrCursor: DateTime?        # For incremental sync
   lastIssueCursor: DateTime?     # For incremental sync
@@ -315,7 +326,14 @@ class RepositoryEndpoint extends Endpoint {
   Future<Repository> addRepository(Session session, String owner, String repo) async;
   Future<List<Repository>> listRepositories(Session session) async;
   Future<void> removeRepository(Session session, int repositoryId) async;
-  Future<Repository> updateSettings(Session session, int repositoryId, String notificationLevel) async;
+  /// Update per-repository notification settings
+  Future<Repository> updateNotificationSettings(
+    Session session,
+    int repositoryId,
+    bool inAppNotifications,      // Enable/disable in-app notifications
+    bool pushNotifications,       // Enable/disable OneSignal push notifications
+    String notificationLevel,     // all|mentions|none
+  ) async;
 }
 ```
 
@@ -339,13 +357,27 @@ class NotificationEndpoint extends Endpoint {
 }
 ```
 
-**CredentialEndpoint**
+**AuthEndpoint** (GitHub PAT-based authentication)
 ```dart
-class CredentialEndpoint extends Endpoint {
-  Future<bool> saveGitHubToken(Session session, String token) async;
-  Future<bool> validateGitHubToken(Session session) async;
-  Future<void> deleteGitHubToken(Session session) async;
-  Future<bool> hasGitHubToken(Session session) async;
+class AuthEndpoint extends Endpoint {
+  /// Validates PAT against GitHub API, creates/updates user, returns session token
+  /// Flow: PAT → GitHub GET /user → Extract githubId, username, name, avatar → Create/update User → Return AuthResponse
+  Future<AuthResponse> login(Session session, String githubPat) async;
+
+  /// Validates current session and refreshes user data from GitHub
+  Future<User> validateSession(Session session) async;
+
+  /// Logs out user, invalidates session
+  Future<void> logout(Session session) async;
+
+  /// Updates OneSignal player ID for push notifications
+  Future<void> registerPushToken(Session session, String onesignalPlayerId) async;
+}
+
+// AuthResponse model
+class AuthResponse {
+  final String sessionToken;
+  final User user;
 }
 ```
 
@@ -365,16 +397,22 @@ class PreferencesEndpoint extends Endpoint {
   - Fetch latest PRs from all watched repositories
   - Fetch latest issues from all watched repositories
   - Detect new comments on existing PRs/issues
-  - Generate notifications for new activity
+  - Generate in-app notifications for new activity
+  - Send OneSignal push notifications (per-repository settings)
   - Update last sync timestamp
 
-**Notification Digest Job**
-- Frequency: Configurable (hourly/daily)
-- Actions:
-  - Aggregate unread notifications
-  - Generate digest summary
-  - Send consolidated notification
-  - Mark digest as sent
+**Push Notification Flow**
+```
+New activity detected
+        ↓
+Check repository.pushNotifications == true
+        ↓
+Check repository.notificationLevel matches activity
+        ↓
+Get user.onesignalPlayerId
+        ↓
+Send via OneSignal REST API
+```
 
 **Cleanup Job**
 - Frequency: Daily at 02:00 UTC
@@ -656,18 +694,22 @@ UI Components:
 
 **1.4 Configure Repository Notifications**
 
-User Story: As a developer, I want to customize notification settings per repository to reduce noise.
+User Story: As a developer, I want to customize notification settings per repository to reduce noise and control how I'm notified.
 
 Acceptance Criteria:
+- User can enable/disable in-app notifications per repository
+- User can enable/disable push notifications (OneSignal) per repository
 - User can set notification level: All, Mentions Only, None
 - Settings persist across sessions
-- Changes take effect immediately
-- Visual indication of current setting
+- Changes take effect immediately on next sync
+- Visual indication of current settings on repository card
 
 UI Components:
 - Settings icon on repository card
 - Settings bottom sheet or dialog
-- Radio buttons for notification levels
+- Toggle for in-app notifications
+- Toggle for push notifications
+- Radio buttons for notification levels (all|mentions|none)
 - Save/Cancel actions
 
 #### 2. Pull Request Monitoring
@@ -877,38 +919,39 @@ UI Components:
 - Settings screen
 - Theme selector (radio buttons or segmented control)
 
-**6.2 GitHub Token Configuration**
+**6.2 GitHub Token Management**
 
-User Story: As a developer, I want to optionally provide my GitHub Personal Access Token to access private repositories.
+User Story: As a developer, I want to manage my GitHub PAT used for authentication and API access.
 
 Acceptance Criteria:
-- User can enter and save GitHub PAT
-- Token is stored securely (encrypted)
-- User can view masked token
-- User can delete token
-- Token validation on save
-- Fallback to public API if no token provided
+- User can view masked current token
+- User can update token (re-validates and refreshes profile)
+- Token validation updates user profile from GitHub
+- User can logout (deletes session and local data)
 
 UI Components:
-- PAT input field (obscured)
-- Save/Cancel buttons
+- Masked token display (last 4 chars visible)
+- "Update Token" button
 - Validation feedback
-- Delete token button
+- Logout button
 
-**6.3 Notification Preferences**
+**6.3 Per-Repository Notification Settings**
 
-User Story: As a developer, I want to configure global notification settings to control when and how I'm notified.
+User Story: As a developer, I want to configure notification settings for each repository independently.
 
 Acceptance Criteria:
-- User can enable/disable notifications globally
-- User can set quiet hours (start and end time)
-- User can enable digest mode (hourly or daily)
-- Settings persist and are respected by notification engine
+- Each repository has its own notification settings
+- User can enable/disable in-app notifications per repo
+- User can enable/disable push notifications (OneSignal) per repo
+- User can set notification level: All, Mentions Only, None
+- Settings persist and are respected by sync job
 
 UI Components:
-- Settings toggles
-- Time pickers for quiet hours
-- Radio buttons for digest frequency
+- Repository settings screen/modal
+- Toggle for in-app notifications
+- Toggle for push notifications
+- Radio buttons for notification level (all|mentions|none)
+- Save button
 
 ### Future Enhancements (Post-MVP)
 
@@ -939,6 +982,50 @@ UI Components:
 ## User Interface Specification
 
 ### Screen Layouts
+
+#### Login Screen (PAT-based)
+
+**Layout:**
+```
+┌────────────────────────────────────┐
+│                                    │
+│                                    │
+│           GitRadar                 │ Logo
+│     GitHub Activity Monitor        │ Tagline
+│                                    │
+│  ┌──────────────────────────────┐ │
+│  │ GitHub Personal Access Token │ │ PAT Input
+│  │ ghp_xxxxxxxxxxxxxxxxxxxx     │ │ (obscured)
+│  └──────────────────────────────┘ │
+│                                    │
+│  How to get a PAT? ↗              │ Help Link
+│                                    │
+│       [ Connect with GitHub ]      │ Primary Button
+│                                    │
+│                                    │
+│  ┌──────────────────────────────┐ │
+│  │ Your PAT needs these scopes: │ │ Info Card
+│  │ • repo (for private repos)   │ │
+│  │ • read:user (for profile)    │ │
+│  └──────────────────────────────┘ │
+│                                    │
+└────────────────────────────────────┘
+```
+
+**Login Flow:**
+```
+User enters PAT
+       ↓
+Tap "Connect with GitHub"
+       ↓
+Server: GET https://api.github.com/user (with PAT)
+       ↓
+Success: Extract { id, login, name, avatar_url }
+       ↓
+Create/update User record, return session token
+       ↓
+Navigate to Home Screen
+```
 
 #### Home Screen / Dashboard
 
@@ -991,21 +1078,21 @@ UI Components:
 │  │ 📁 flutter/flutter           │ │ Repo Card 1
 │  │    Last synced: 5 min ago    │ │
 │  │    PRs: 145  Issues: 2,341   │ │
-│  │    🔔 All notifications  ⚙   │ │
+│  │    🔔 In-app  📲 Push    ⚙   │ │ Both enabled
 │  └──────────────────────────────┘ │
 │                                    │
 │  ┌──────────────────────────────┐ │
 │  │ 📁 serverpod/serverpod       │ │ Repo Card 2
 │  │    Last synced: 12 min ago   │ │
 │  │    PRs: 3  Issues: 12        │ │
-│  │    🔕 Mentions only      ⚙   │ │
+│  │    🔔 In-app only        ⚙   │ │ No push
 │  └──────────────────────────────┘ │
 │                                    │
 │  ┌──────────────────────────────┐ │
 │  │ 📁 user/private-repo         │ │ Repo Card 3
 │  │    Last synced: 1 hour ago   │ │
 │  │    PRs: 0  Issues: 5         │ │
-│  │    🔔 All notifications  ⚙   │ │
+│  │    🔕 Notifications off  ⚙   │ │ Both disabled
 │  └──────────────────────────────┘ │
 │                                    │
 ├────────────────────────────────────┤
@@ -1027,6 +1114,12 @@ UI Components:
 │  └──────────────────────────────┘ │
 │                                    │
 │  Notification Settings             │ Section
+│  ┌──────────────────────────────┐ │
+│  │ In-app notifications    [ON] │ │ Toggle
+│  │ Push notifications     [OFF] │ │ Toggle
+│  └──────────────────────────────┘ │
+│                                    │
+│  Notification Level                │ Section
 │  ┌──────────────────────────────┐ │
 │  │ ○ All activity               │ │ Radio
 │  │ ● Mentions only              │ │ Options
