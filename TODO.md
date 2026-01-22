@@ -10,10 +10,11 @@
 - [x] **T0.5** Create development scripts in root (start db, start server)
 
 ## Phase 1: Database Models (DONE)
-- [x] **T1.1** Create `User` model (GitHub PAT-based auth):
-  - `githubId`, `githubUsername`, `displayName`, `avatarUrl`
-  - `encryptedPat` (scope=serverOnly), `onesignalPlayerId`, `lastValidatedAt`
-  - Unique constraint on `githubId` and `githubUsername`
+- [x] **T1.1** Create `User` model (GitHub PAT-based auth, optional):
+  - `githubId?`, `githubUsername?`, `displayName?`, `avatarUrl?`
+  - `encryptedPat?` (scope=serverOnly), `deviceId?`, `isAnonymous`
+  - `onesignalPlayerId?`, `lastValidatedAt?`
+  - Unique constraints on `githubId`, `githubUsername`, `deviceId`
 - [x] **T1.2** Create `Repository` model:
   - `userId`, `owner`, `repo`, `githubRepoId`
   - `inAppNotifications`, `pushNotifications`, `notificationLevel`
@@ -28,39 +29,49 @@
 - [ ] **T1.7** Run `serverpod generate` and apply migrations
   - **Note:** Requires serverpod_cli. Run: `cd server && serverpod generate`
 
-## Phase 2: Backend Endpoints
-- [ ] **T2.1** `AuthEndpoint` (GitHub PAT-based):
+## Phase 2: Backend Endpoints (DONE)
+- [x] **T2.1** `AuthEndpoint` (GitHub PAT optional):
   - `login(githubPat)` - validate PAT, create/update user, return session
+  - `loginAnonymous(deviceId)` - create anonymous user (public repos only)
+  - `upgradeWithPat(githubPat)` - convert anonymous to authenticated
   - `validateSession()` - refresh user data from GitHub
   - `logout()` - invalidate session
   - `registerPushToken(onesignalPlayerId)` - for push notifications
-- [ ] **T2.2** `RepositoryEndpoint`:
-  - `addRepository(owner, repo)`
+  - `hasPat()` - check if user has PAT
+- [x] **T2.2** `RepositoryEndpoint`:
+  - `addRepository(owner, repo)` - validates via GitHub API, max 10 repos
   - `listRepositories()`
-  - `removeRepository(id)`
+  - `removeRepository(id)` - cascades delete to PRs/Issues/Notifications
   - `updateNotificationSettings(id, inApp, push, level)`
-- [ ] **T2.3** `ActivityEndpoint`:
-  - `listPullRequests(filter, cursor)`
-  - `listIssues(filter, cursor)`
+  - `checkRepositoryAccess(owner, repo)` - verify repo access
+  - **Note:** Anonymous users can only add public repos (rate limit: 60/hr)
+- [x] **T2.3** `ActivityEndpoint`:
+  - `listPullRequests(filter, cursor)` - cursor-based pagination
+  - `listIssues(filter, cursor)` - cursor-based pagination
   - `markAsRead(type, id)`
-- [ ] **T2.4** `NotificationEndpoint`:
-  - `listNotifications(cursor)`
+  - `getCounts()` - returns ActivityCounts
+- [x] **T2.4** `NotificationEndpoint`:
+  - `listNotifications(cursor)` - cursor-based pagination
   - `markRead(id)`
   - `markAllRead()`
   - `getUnreadCount()`
-- [ ] **T2.5** `PreferencesEndpoint`:
-  - `getPreferences()`
+- [x] **T2.5** `PreferencesEndpoint`:
+  - `getPreferences()` - auto-creates defaults
   - `updatePreferences(theme)`
+- [x] **T2.6** Helper models created:
+  - `AuthResponse`, `PaginatedPullRequests`, `PaginatedIssues`, `PaginatedNotifications`
+  - `ActivityCounts`, `PullRequestFilter`, `IssueFilter`
 
-## Phase 3: GitHub Sync Service
-- [ ] **T3.1** Create `GitHubApiService` - wrapper for GitHub REST API
-- [ ] **T3.2** Implement PR fetching with pagination
-- [ ] **T3.3** Implement Issue fetching with pagination
-- [ ] **T3.4** Create sync cursor logic (incremental updates)
-- [ ] **T3.5** Implement rate limit handling with backoff
-- [ ] **T3.6** Create `NotificationService` to generate in-app notifications
-- [ ] **T3.7** Create `OneSignalService` for push notifications (per-repo settings)
-- [ ] **T3.8** Set up Serverpod scheduled task for periodic sync
+## Phase 3: GitHub Sync Service (DONE)
+- [x] **T3.1** Create `GitHubApiService` - wrapper for GitHub REST API
+- [x] **T3.2** Implement PR fetching with pagination
+- [x] **T3.3** Implement Issue fetching with pagination
+- [x] **T3.4** Create sync cursor logic (incremental updates)
+- [x] **T3.5** Implement rate limit handling with backoff
+- [x] **T3.6** Create `NotificationService` to generate in-app notifications
+- [x] **T3.7** Create `OneSignalService` for push notifications (per-repo settings)
+- [x] **T3.8** Set up Serverpod scheduled task for periodic sync
+  - **Note:** Run `serverpod generate` to generate SyncResult model code
 
 ## Phase 4: Backend Testing (Local)
 - [ ] **T4.1** Test `AuthEndpoint` - login with valid/invalid PAT

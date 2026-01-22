@@ -1,0 +1,9 @@
+class: SyncResult
+fields:
+  repositoryId: int
+  newPullRequests: int
+  updatedPullRequests: int
+  newIssues: int
+  updatedIssues: int
+  notificationsCreated: int
+  syncedAt: DateTime
