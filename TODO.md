@@ -121,37 +121,52 @@
 - [ ] **T5.5** Verify all endpoints work in production
 - [ ] **T5.6** Test GitHub sync in production environment
 
-## Phase 6: Flutter App Setup
-- [ ] **T6.1** Create Flutter project in `/app`
-- [ ] **T6.2** Configure Serverpod client generation
-- [ ] **T6.3** Set up app structure with Riverpod
-- [ ] **T6.4** Configure Serverpod client connection (local + production)
-- [ ] **T6.5** Implement theme system (light/dark)
-- [ ] **T6.6** Create common widgets (cards, loading states, error states)
-- [ ] **T6.7** Set up routing
+## Phase 6: Flutter App Setup (DONE)
+- [x] **T6.1** Create Flutter project in `/app`
+- [x] **T6.2** Configure Serverpod client generation
+  - Uses `gitradar_client` package with generated protocol
+- [x] **T6.3** Set up app structure with Riverpod
+  - Folder structure: `core/`, `features/`, `shared/`, `routing/`
+  - ProviderScope with SharedPreferences override
+- [x] **T6.4** Configure Serverpod client connection (local + production)
+  - `AppAuthKeyProvider` for session token management
+  - `FlutterConnectivityMonitor` for connection status
+- [x] **T6.5** Implement theme system (light/dark)
+  - `AppTheme` with brand colors, Material 3
+  - `ThemeModeNotifier` persisted to SharedPreferences
+- [x] **T6.6** Create common widgets (cards, loading states, error states)
+  - `LoadingWidget`, `ErrorDisplay`, `EmptyWidget`
+  - `MainScaffold` with bottom navigation
+- [x] **T6.7** Set up routing
+  - go_router with ShellRoute for bottom nav
+  - Auth redirect logic
 
-## Phase 7: Flutter App Screens
-- [ ] **T7.1** Login screen (PAT-based):
-  - PAT input field
+## Phase 7: Flutter App Screens (DONE)
+- [x] **T7.1** Login screen (PAT-based):
+  - Anonymous login option (public repos only)
+  - PAT input field with validation
   - "Connect with GitHub" button
-  - Validation feedback
-- [ ] **T7.2** Repository list screen:
-  - Add repo button
-  - Repo cards with notification status (in-app/push icons)
-  - Swipe to delete
-  - Per-repo notification settings modal
-- [ ] **T7.3** Activity screen:
-  - Tabs: PRs | Issues
-  - Filter chips (Open/Closed)
-  - Tap to open in GitHub
-- [ ] **T7.4** Notifications screen:
-  - Notification list
-  - Mark read/unread
-  - Tap to navigate
-- [ ] **T7.5** Settings screen:
-  - User profile (from GitHub)
-  - Theme toggle
-  - Update PAT / Logout
+  - Validation feedback via SnackBar
+- [x] **T7.2** Repository list screen:
+  - Add repo FAB button
+  - Repo cards with notification icons (in-app/push)
+  - Swipe to delete with confirmation
+  - Add repository form with owner/repo fields
+- [x] **T7.3** Activity screen:
+  - Tabs: PRs | Issues with badges
+  - PR/Issue cards with state colors
+  - Tap to open in GitHub (url_launcher)
+  - Pull-to-refresh
+- [x] **T7.4** Notifications screen:
+  - Notification list with icons by type
+  - Mark read/unread (tap to mark read)
+  - "Mark all read" action in app bar
+  - Unread indicator badge
+- [x] **T7.5** Settings screen:
+  - User profile (anonymous vs GitHub connected)
+  - Theme toggle (System/Light/Dark)
+  - Connect PAT dialog for anonymous users
+  - Sign out with confirmation
 
 ## Phase 8: Integration Testing & Polish
 - [ ] **T8.1** End-to-end testing: Login → Add repo → View PRs → Notifications

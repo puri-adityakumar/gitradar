@@ -11,6 +11,8 @@ build/
 *.iws
 .idea/
 *.log
+.flutter-plugins
+.flutter-plugins-dependencies
 
 # Serverpod - generated code and migrations ARE committed for reproducibility
 # Only ignore local test artifacts
@@ -29,17 +31,25 @@ server/test/integration/test_tools/
 
 # Build outputs
 /build/
+**/build/
 *.apk
 *.aab
 *.ipa
 *.app
+
+# Flutter app - platform folders (web-first project, ignore mobile platforms)
+app/android/
+app/ios/
+app/linux/
+app/macos/
+app/windows/
+app/.metadata
 
 # Docker
 docker-compose.override.yml
 
 # Coverage
 coverage/
-.dart_tool/
 
 # Credentials (never commit)
 **/config/passwords.yaml
