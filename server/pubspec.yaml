@@ -17,3 +17,6 @@ dev_dependencies:
   lints: ^3.0.0
   test: ^1.24.0
   serverpod_test: ^3.0.0
+  serverpod_client: ^3.0.0
+  gitradar_client:
+    path: ../gitradar_client

@@ -153,6 +153,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.0"
+  gitradar_client:
+    dependency: "direct dev"
+    description:
+      path: "../gitradar_client"
+      relative: true
+    source: path
+    version: "1.0.0"
   glob:
     dependency: transitive
     description:
@@ -334,6 +341,14 @@ packages:
     description:
       name: serverpod
       sha256: d2d05c742ad4c58aa495f4b14b97b14c7b0c7d972c044ebd8f219910185edb92
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.3"
+  serverpod_client:
+    dependency: "direct dev"
+    description:
+      name: serverpod_client
+      sha256: "4add5cba3fd6f13d05f12928bff09752efc9096e83d0a8c7d67b4f036634f2b1"
       url: "https://pub.dev"
     source: hosted
     version: "3.2.3"
