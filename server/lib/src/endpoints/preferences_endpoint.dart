@@ -1,16 +1,14 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../util/session_util.dart';
 
 /// Endpoint for managing user preferences.
 class PreferencesEndpoint extends Endpoint {
   /// Get user preferences.
   /// Creates default preferences if none exist.
   Future<UserPreferences> getPreferences(Session session) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     var preferences = await UserPreferences.db.findFirstRow(
       session,
@@ -39,10 +37,7 @@ class PreferencesEndpoint extends Endpoint {
     Session session,
     String themeMode,
   ) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     // Validate theme mode
     if (!['light', 'dark', 'system'].contains(themeMode)) {

@@ -29,7 +29,7 @@ Future<void> _initializeSyncJob(Serverpod pod) async {
   try {
     // Schedule the first sync to run in 1 minute
     // The job will reschedule itself after each run
-    await session.futureCallWithDelay(
+    await pod.futureCallWithDelay(
       'repositorySync',
       null,
       Duration(minutes: 1),

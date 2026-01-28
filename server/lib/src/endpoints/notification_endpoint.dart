@@ -1,6 +1,7 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../util/session_util.dart';
 
 /// Endpoint for managing in-app notifications.
 class NotificationEndpoint extends Endpoint {
@@ -12,10 +13,7 @@ class NotificationEndpoint extends Endpoint {
     Session session,
     String? cursor,
   ) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     var whereClause = Notification.t.userId.equals(userId);
 
@@ -23,7 +21,7 @@ class NotificationEndpoint extends Endpoint {
     if (cursor != null) {
       final cursorId = int.tryParse(cursor);
       if (cursorId != null) {
-        whereClause = whereClause & Notification.t.id.lessThan(cursorId);
+        whereClause = whereClause & (Notification.t.id < cursorId);
       }
     }
 
@@ -50,10 +48,7 @@ class NotificationEndpoint extends Endpoint {
 
   /// Mark a single notification as read.
   Future<void> markRead(Session session, int notificationId) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     final notification = await Notification.db.findById(session, notificationId);
     if (notification == null) {
@@ -70,10 +65,7 @@ class NotificationEndpoint extends Endpoint {
 
   /// Mark all notifications as read for the current user.
   Future<void> markAllRead(Session session) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     // Get all unread notifications for this user
     final unreadNotifications = await Notification.db.find(
@@ -90,10 +82,7 @@ class NotificationEndpoint extends Endpoint {
 
   /// Get count of unread notifications.
   Future<int> getUnreadCount(Session session) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     return await Notification.db.count(
       session,

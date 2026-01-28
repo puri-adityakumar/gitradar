@@ -1,15 +1,16 @@
 import 'package:serverpod/serverpod.dart';
 
+import '../generated/protocol.dart';
 import '../services/sync_service.dart';
 
 /// Future Call for periodic repository synchronization.
 /// Syncs all repositories and reschedules itself for the next interval.
-class RepositorySyncFutureCall extends FutureCall<void> {
+class RepositorySyncFutureCall extends FutureCall<SyncResult> {
   /// Sync interval in minutes.
   static const int syncIntervalMinutes = 5;
 
   @override
-  Future<void> invoke(Session session, void object) async {
+  Future<void> invoke(Session session, SyncResult? object) async {
     session.log('Starting scheduled repository sync', level: LogLevel.info);
 
     final syncService = SyncService();
@@ -47,7 +48,7 @@ class RepositorySyncFutureCall extends FutureCall<void> {
     }
 
     // Reschedule for next interval
-    await session.futureCallWithDelay(
+    await session.serverpod.futureCallWithDelay(
       'repositorySync',
       null,
       Duration(minutes: syncIntervalMinutes),

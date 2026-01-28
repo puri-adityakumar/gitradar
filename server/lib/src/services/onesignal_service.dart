@@ -1,5 +1,3 @@
-import 'package:serverpod/serverpod.dart';
-
 /// Service for sending push notifications via OneSignal.
 ///
 /// TODO: Implement full OneSignal integration post-MVP.
@@ -21,11 +19,8 @@ class OneSignalService {
     String message,
   ) async {
     // TODO: Implement actual OneSignal API call
-    // For MVP, just log the notification
-    Session.log(
-      'OneSignal push notification (stub)',
-      level: LogLevel.debug,
-    );
+    // For MVP, just log the notification (stub)
+    print('[OneSignal stub] Push to $playerId: $title - $message');
 
     // Example implementation for post-MVP:
     // final response = await http.post(

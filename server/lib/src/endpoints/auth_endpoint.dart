@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:encrypt/encrypt.dart';
 
 import '../generated/protocol.dart';
+import '../util/session_util.dart';
 
 /// Authentication endpoint using GitHub PAT (optional).
 /// Supports both authenticated (with PAT) and anonymous (public repos only) modes.
@@ -135,10 +136,7 @@ class AuthEndpoint extends Endpoint {
 
   /// Upgrades an anonymous user to authenticated by adding GitHub PAT.
   Future<AuthResponse> upgradeWithPat(Session session, String githubPat) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     final existingUser = await User.db.findById(session, userId);
     if (existingUser == null) {
@@ -189,10 +187,7 @@ class AuthEndpoint extends Endpoint {
   /// Validates current session and refreshes user data from GitHub.
   /// Only works for authenticated (non-anonymous) users.
   Future<User> validateSession(Session session) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     final user = await User.db.findById(session, userId);
     if (user == null) {
@@ -242,10 +237,7 @@ class AuthEndpoint extends Endpoint {
   /// Registers OneSignal player ID for push notifications.
   Future<void> registerPushToken(
       Session session, String onesignalPlayerId) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     final user = await User.db.findById(session, userId);
     if (user == null) {
@@ -260,7 +252,7 @@ class AuthEndpoint extends Endpoint {
 
   /// Check if user has PAT (can access private repos).
   Future<bool> hasPat(Session session) async {
-    final userId = session.auth?.userId;
+    final userId = SessionUtil.getUserId(session);
     if (userId == null) {
       return false;
     }

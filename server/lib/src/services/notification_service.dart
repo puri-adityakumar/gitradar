@@ -159,7 +159,7 @@ class NotificationService {
     if (_oneSignalService == null) {
       return;
     }
-    await _oneSignalService.sendPushNotification(playerId, title, message);
+    await _oneSignalService!.sendPushNotification(playerId, title, message);
   }
 }
 

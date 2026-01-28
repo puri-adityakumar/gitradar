@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:encrypt/encrypt.dart';
 
 import '../generated/protocol.dart';
+import '../util/session_util.dart';
 
 /// Endpoint for managing watched GitHub repositories.
 /// Supports both authenticated (with PAT) and anonymous users.
@@ -24,10 +25,7 @@ class RepositoryEndpoint extends Endpoint {
     String owner,
     String repo,
   ) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     // Check repository limit
     final currentCount = await Repository.db.count(
@@ -122,10 +120,7 @@ class RepositoryEndpoint extends Endpoint {
 
   /// List all repositories for the current user.
   Future<List<Repository>> listRepositories(Session session) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     return await Repository.db.find(
       session,
@@ -138,10 +133,7 @@ class RepositoryEndpoint extends Endpoint {
   /// Remove a repository from the user's watchlist.
   /// Also deletes associated PRs, Issues, and Notifications.
   Future<void> removeRepository(Session session, int repositoryId) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     final repository = await Repository.db.findById(session, repositoryId);
     if (repository == null) {
@@ -179,10 +171,7 @@ class RepositoryEndpoint extends Endpoint {
     bool pushNotifications,
     String notificationLevel,
   ) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     final repository = await Repository.db.findById(session, repositoryId);
     if (repository == null) {
@@ -213,7 +202,7 @@ class RepositoryEndpoint extends Endpoint {
     String owner,
     String repo,
   ) async {
-    final userId = session.auth?.userId;
+    final userId = SessionUtil.getUserId(session);
 
     // Build headers
     final headers = <String, String>{

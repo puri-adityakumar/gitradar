@@ -76,28 +76,27 @@
 - [x] **T3.8** Set up Serverpod scheduled task for periodic sync
   - **Note:** Run `serverpod generate` to generate SyncResult model code
 
-## Phase 3.5: Serverpod 3.2.3 API Compatibility Fixes (BLOCKING)
+## Phase 3.5: Serverpod 3.2.3 API Compatibility Fixes (DONE)
 
-> **CRITICAL:** The following issues must be fixed before the server can run.
-> Code was written for an older Serverpod version. Serverpod 3.2.3 has breaking API changes.
+> Code was updated to work with Serverpod 3.2.3 breaking API changes.
 
-- [ ] **T3.5.1** Fix `session.auth.userId` references (15+ occurrences)
-  - Serverpod 3 removed `session.auth` - need new authentication pattern
-  - Files: all endpoints (`auth_endpoint.dart`, `activity_endpoint.dart`, etc.)
-- [ ] **T3.5.2** Fix `.lessThan()` method calls on columns
-  - Use `<` operator instead: `t.id.lessThan(cursor)` → `t.id < cursor`
+- [x] **T3.5.1** Fix `session.auth.userId` references (15+ occurrences)
+  - Created `SessionUtil` helper using `session.authenticated?.userIdentifier`
+  - Files: all endpoints now import and use `SessionUtil`
+- [x] **T3.5.2** Fix `.lessThan()` method calls on columns
+  - Changed to `<` operator: `t.id < cursor`
   - Files: `activity_endpoint.dart`, `notification_endpoint.dart`
-- [ ] **T3.5.3** Fix `FutureCall<void>` type constraint
-  - Serverpod 3 requires `FutureCall<SerializableModel>`, not `void`
+- [x] **T3.5.3** Fix `FutureCall<void>` type constraint
+  - Changed to `FutureCall<SyncResult>` with nullable parameter
   - File: `repository_sync_call.dart`
-- [ ] **T3.5.4** Fix `session.futureCallWithDelay()` method
-  - API changed in Serverpod 3 - find new scheduling method
+- [x] **T3.5.4** Fix `session.futureCallWithDelay()` method
+  - Changed to `session.serverpod.futureCallWithDelay()` (deprecated but works)
   - Files: `repository_sync_call.dart`, `bin/main.dart`
-- [ ] **T3.5.5** Fix `OneSignalService` static access error
-  - `Session.log` → use instance method or different logging
+- [x] **T3.5.5** Fix `OneSignalService` static access error
+  - Replaced `Session.log` with simple `print()` for stub
   - File: `onesignal_service.dart`
-- [ ] **T3.5.6** Fix null safety issue in `NotificationService`
-  - Add null check for `_oneSignalService?.sendPushNotification()`
+- [x] **T3.5.6** Fix null safety issue in `NotificationService`
+  - Added `!` operator after null check
   - File: `notification_service.dart`
 
 ## Phase 4: Backend Testing (Local)

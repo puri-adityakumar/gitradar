@@ -1,0 +1,27 @@
+activity:
+  - listPullRequests:
+  - listIssues:
+  - markAsRead:
+  - getCounts:
+auth:
+  - login:
+  - loginAnonymous:
+  - upgradeWithPat:
+  - validateSession:
+  - logout:
+  - registerPushToken:
+  - hasPat:
+notification:
+  - listNotifications:
+  - markRead:
+  - markAllRead:
+  - getUnreadCount:
+preferences:
+  - getPreferences:
+  - updatePreferences:
+repository:
+  - addRepository:
+  - listRepositories:
+  - removeRepository:
+  - updateNotificationSettings:
+  - checkRepositoryAccess:

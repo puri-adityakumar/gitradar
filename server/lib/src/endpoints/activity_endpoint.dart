@@ -1,6 +1,7 @@
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import '../util/session_util.dart';
 
 /// Endpoint for viewing pull requests and issues across all watched repositories.
 class ActivityEndpoint extends Endpoint {
@@ -12,10 +13,7 @@ class ActivityEndpoint extends Endpoint {
     PullRequestFilter? filter,
     String? cursor,
   ) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     // Get user's repository IDs
     final repositories = await Repository.db.find(
@@ -52,7 +50,7 @@ class ActivityEndpoint extends Endpoint {
     if (cursor != null) {
       final cursorId = int.tryParse(cursor);
       if (cursorId != null) {
-        whereClause = whereClause & PullRequest.t.id.lessThan(cursorId);
+        whereClause = whereClause & (PullRequest.t.id < cursorId);
       }
     }
 
@@ -83,10 +81,7 @@ class ActivityEndpoint extends Endpoint {
     IssueFilter? filter,
     String? cursor,
   ) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     // Get user's repository IDs
     final repositories = await Repository.db.find(
@@ -123,7 +118,7 @@ class ActivityEndpoint extends Endpoint {
     if (cursor != null) {
       final cursorId = int.tryParse(cursor);
       if (cursorId != null) {
-        whereClause = whereClause & Issue.t.id.lessThan(cursorId);
+        whereClause = whereClause & (Issue.t.id < cursorId);
       }
     }
 
@@ -154,10 +149,7 @@ class ActivityEndpoint extends Endpoint {
     String entityType,
     int entityId,
   ) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     if (entityType == 'pr') {
       final pr = await PullRequest.db.findById(session, entityId);
@@ -196,10 +188,7 @@ class ActivityEndpoint extends Endpoint {
 
   /// Get counts of open PRs, open issues, and unread notifications.
   Future<ActivityCounts> getCounts(Session session) async {
-    final userId = session.auth?.userId;
-    if (userId == null) {
-      throw Exception('Not authenticated');
-    }
+    final userId = SessionUtil.requireUserId(session);
 
     // Get user's repository IDs
     final repositories = await Repository.db.find(
