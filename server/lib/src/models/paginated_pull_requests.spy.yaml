@@ -1,0 +1,5 @@
+class: PaginatedPullRequests
+fields:
+  items: List<PullRequest>
+  nextCursor: String?
+  hasMore: bool

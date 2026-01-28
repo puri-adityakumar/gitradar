@@ -1,0 +1,5 @@
+class: PaginatedNotifications
+fields:
+  items: List<Notification>
+  nextCursor: String?
+  hasMore: bool

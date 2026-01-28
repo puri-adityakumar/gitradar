@@ -1,0 +1,5 @@
+class: PaginatedIssues
+fields:
+  items: List<Issue>
+  nextCursor: String?
+  hasMore: bool

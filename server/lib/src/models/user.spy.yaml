@@ -1,11 +1,13 @@
 class: User
 table: users
 fields:
-  githubId: int
-  githubUsername: String
+  githubId: int?
+  githubUsername: String?
   displayName: String?
   avatarUrl: String?
-  encryptedPat: String, scope=serverOnly
+  encryptedPat: String?, scope=serverOnly
+  deviceId: String?
+  isAnonymous: bool
   onesignalPlayerId: String?
   lastValidatedAt: DateTime?
   createdAt: DateTime, default=now
@@ -16,4 +18,7 @@ indexes:
     unique: true
   idx_users_github_username:
     fields: githubUsername
+    unique: true
+  idx_users_device_id:
+    fields: deviceId
     unique: true

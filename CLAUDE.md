@@ -8,26 +8,17 @@ GitRadar is a GitHub monitoring platform built for the Serverpod 3 Global Hackat
 
 **Tech Stack:** Serverpod 3 + Flutter + PostgreSQL
 
-## Repository Structure (Monorepo)
-
-```
-gitradar/
-├── server/                    # Serverpod backend
-│   ├── lib/src/
-│   │   ├── endpoints/         # RPC endpoints (NOT REST)
-│   │   ├── models/            # Serverpod model definitions (.yaml)
-│   │   ├── services/          # Business logic (GitHub API, sync)
-│   │   └── generated/         # Auto-generated (DO NOT EDIT)
-│   └── migrations/            # Database migrations
-├── app/                       # Flutter application
-│   ├── lib/src/
-│   │   ├── features/          # Feature modules
-│   │   ├── core/              # Shared utilities, theme
-│   │   └── generated/         # Serverpod client (DO NOT EDIT)
-└── docs/                      # Documentation (PRD.md, setup guides)
-```
-
 ## Commands
+
+### Quick Start (use helper scripts)
+
+```bash
+./scripts/setup.sh               # First-time setup (install deps, generate code)
+./scripts/db-start.sh            # Start PostgreSQL via Docker
+./scripts/server-start.sh        # Start Serverpod server
+./scripts/generate.sh            # Regenerate code after model changes (server + app)
+./scripts/db-reset.sh            # Reset database (destructive)
+```
 
 ### Server (Serverpod)
 
@@ -35,10 +26,10 @@ gitradar/
 cd server
 dart pub get                      # Install dependencies
 serverpod generate                # Generate code (models, endpoints, migrations)
-serverpod migrate                 # Run database migrations
-dart run bin/main.dart            # Start development server (API: :8080, Web: :8082)
-dart run bin/main.dart --apply-migrations  # First run with migrations
-dart test                         # Run tests
+dart run bin/main.dart --apply-migrations  # Run server (first time or after migrations)
+dart run bin/main.dart            # Run server (subsequent runs)
+dart test                         # Run all tests
+dart test test/unit/my_test.dart  # Run single test file
 ```
 
 ### App (Flutter)
@@ -47,23 +38,16 @@ dart test                         # Run tests
 cd app
 flutter pub get                   # Install dependencies
 flutter run -d chrome             # Run web
-flutter run -d iPhone             # Run iOS Simulator
-flutter test                      # Run tests
-flutter build web                 # Build web
+flutter run -d macos              # Run macOS desktop
+flutter test                      # Run all tests
+flutter test test/widget_test.dart  # Run single test
 ```
 
-### Full Project (after model changes)
+### After Model Changes
 
+When you modify `server/lib/src/models/*.spy.yaml` files:
 ```bash
-cd server && serverpod generate && cd ../app && flutter pub get
-```
-
-### Database (Docker)
-
-```bash
-cd server
-docker compose up -d              # Start PostgreSQL
-docker compose down               # Stop PostgreSQL
+./scripts/generate.sh             # Regenerates server + updates app dependencies
 ```
 
 ## Architecture
@@ -80,17 +64,30 @@ class RepositoryEndpoint extends Endpoint {
 }
 ```
 
+### Key Services
+
+- **GitHubApiService** (`server/lib/src/services/github_api_service.dart`): HTTP client for GitHub REST API with rate limit handling and exponential backoff
+- **SyncService** (`server/lib/src/services/sync_service.dart`): Syncs PRs/Issues from GitHub, creates notifications, enforces 50-item limit per repo
+- **EncryptionService** (`server/lib/src/services/encryption_service.dart`): AES-256 encryption for PAT storage
+- **NotificationService** (`server/lib/src/services/notification_service.dart`): Creates in-app notifications based on repo settings
+- **OneSignalService** (`server/lib/src/services/onesignal_service.dart`): Push notification delivery
+
+### Background Sync
+
+The `RepositorySyncFutureCall` in `server/lib/src/futures/repository_sync_call.dart` runs every 5 minutes via Serverpod's scheduler. It syncs all repositories for all users and reschedules itself.
+
 ### Authentication
 
 - Uses GitHub PAT-based auth (no Serverpod auth module, no OAuth for MVP)
 - User submits PAT → Server validates via GitHub `GET /user` → Creates/updates User record
 - User identity derived from GitHub (githubId, username, displayName, avatarUrl)
-- GitHub PAT stored server-side only, AES-256 encrypted
+- GitHub PAT stored server-side only, AES-256 encrypted via `EncryptionService`
+- Supports anonymous mode (public repos only, 60 req/hr rate limit)
 - Never return GitHub tokens to client
 
 ### Database Models
 
-Define in `server/lib/src/models/*.yaml`:
+Define in `server/lib/src/models/*.spy.yaml` (note the `.spy.yaml` extension for Serverpod 3):
 
 ```yaml
 class: Repository
@@ -105,13 +102,15 @@ indexes:
     unique: true
 ```
 
+After changes, run `./scripts/generate.sh` or `cd server && serverpod generate`.
+
 ## MVP Scope Boundaries
 
 ### In Scope
 - GitHub PAT-based auth (user identity from GitHub API)
 - Repository CRUD (max 10 per user)
 - Per-repository notification settings (in-app + push toggles)
-- Periodic sync via Serverpod scheduler (every 5-10 min)
+- Periodic sync via Serverpod scheduler (every 5 min)
 - Store last 50 PRs/Issues per repo
 - In-app notifications with mark read/unread
 - Push notifications via OneSignal (per-repository)
@@ -141,3 +140,26 @@ indexes:
 - **Methods/Variables**: `camelCase`
 - **Database tables**: `snake_case`
 - **Endpoints**: `{Feature}Endpoint` (e.g., `RepositoryEndpoint`)
+- **Model files**: `{model_name}.spy.yaml` (Serverpod 3 format)
+- **Future calls**: `{name}_call.dart` in `server/lib/src/futures/`
+
+## Repository Structure
+
+```
+gitradar/
+├── server/                    # Serverpod backend
+│   ├── lib/src/
+│   │   ├── endpoints/         # RPC endpoints (NOT REST)
+│   │   ├── models/            # Serverpod model definitions (.spy.yaml)
+│   │   ├── services/          # Business logic (GitHub API, sync, encryption)
+│   │   ├── futures/           # Scheduled background tasks
+│   │   └── generated/         # Auto-generated (DO NOT EDIT)
+│   └── migrations/            # Database migrations
+├── app/                       # Flutter application
+│   ├── lib/src/
+│   │   ├── features/          # Feature modules
+│   │   ├── core/              # Shared utilities, theme
+│   │   └── generated/         # Serverpod client (DO NOT EDIT)
+├── scripts/                   # Development helper scripts
+└── docs/                      # Documentation (PRD.md, setup guides)
+```

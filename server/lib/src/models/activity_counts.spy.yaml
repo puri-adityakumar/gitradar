@@ -1,0 +1,5 @@
+class: ActivityCounts
+fields:
+  openPullRequests: int
+  openIssues: int
+  unreadNotifications: int

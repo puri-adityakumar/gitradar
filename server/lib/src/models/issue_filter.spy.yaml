@@ -1,0 +1,5 @@
+class: IssueFilter
+fields:
+  repositoryId: int?
+  state: String?
+  isRead: bool?

@@ -1,0 +1,5 @@
+class: PullRequestFilter
+fields:
+  repositoryId: int?
+  state: String?
+  isRead: bool?

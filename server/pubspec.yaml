@@ -10,6 +10,8 @@ dependencies:
   serverpod: ^3.0.0
   # Encryption for PAT storage
   encrypt: ^5.0.3
+  # HTTP client for GitHub API calls
+  http: ^1.2.0
 
 dev_dependencies:
   lints: ^3.0.0
