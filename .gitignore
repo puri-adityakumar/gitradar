@@ -3,7 +3,7 @@
 .packages
 .pub/
 build/
-pubspec.lock
+# pubspec.lock - committed for reproducibility in app projects
 
 # Flutter/Dart
 *.iml
@@ -12,9 +12,9 @@ pubspec.lock
 .idea/
 *.log
 
-# Serverpod generated
-**/generated/
-**/migrations/
+# Serverpod - generated code and migrations ARE committed for reproducibility
+# Only ignore local test artifacts
+server/test/integration/test_tools/
 
 # Environment files
 .env

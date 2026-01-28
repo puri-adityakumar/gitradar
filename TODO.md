@@ -4,6 +4,7 @@
 - [x] **T0.1** Initialize monorepo structure
 - [x] **T0.2** Create Serverpod project in `/server`
 - [x] **T0.3** Set up local PostgreSQL with Docker
+  - **Config:** PostgreSQL runs on port **5433** (to avoid conflicts with other projects)
 - [x] **T0.4** Verify server starts and connects to database
   - **Note:** Requires `dart pub get` and packages: flutter, docker, serverpod_cli
   - Run `./scripts/setup.sh` once prerequisites are installed
@@ -26,8 +27,10 @@
 - [x] **T1.4** Create `Issue` model (similar to PR, with `labelsJson`)
 - [x] **T1.5** Create `Notification` model
 - [x] **T1.6** Create `UserPreferences` model (theme only for MVP)
-- [ ] **T1.7** Run `serverpod generate` and apply migrations
-  - **Note:** Requires serverpod_cli. Run: `cd server && serverpod generate`
+- [x] **T1.7** Run `serverpod generate` and apply migrations
+  - **Note:** Code generated. Migrations pending (need API fixes first).
+  - Created `gitradar_client/` package for Serverpod client generation
+  - Created `server/config/generator.yaml` for Serverpod 3 config
 
 ## Phase 2: Backend Endpoints (DONE)
 - [x] **T2.1** `AuthEndpoint` (GitHub PAT optional):
@@ -72,6 +75,30 @@
 - [x] **T3.7** Create `OneSignalService` for push notifications (per-repo settings)
 - [x] **T3.8** Set up Serverpod scheduled task for periodic sync
   - **Note:** Run `serverpod generate` to generate SyncResult model code
+
+## Phase 3.5: Serverpod 3.2.3 API Compatibility Fixes (BLOCKING)
+
+> **CRITICAL:** The following issues must be fixed before the server can run.
+> Code was written for an older Serverpod version. Serverpod 3.2.3 has breaking API changes.
+
+- [ ] **T3.5.1** Fix `session.auth.userId` references (15+ occurrences)
+  - Serverpod 3 removed `session.auth` - need new authentication pattern
+  - Files: all endpoints (`auth_endpoint.dart`, `activity_endpoint.dart`, etc.)
+- [ ] **T3.5.2** Fix `.lessThan()` method calls on columns
+  - Use `<` operator instead: `t.id.lessThan(cursor)` → `t.id < cursor`
+  - Files: `activity_endpoint.dart`, `notification_endpoint.dart`
+- [ ] **T3.5.3** Fix `FutureCall<void>` type constraint
+  - Serverpod 3 requires `FutureCall<SerializableModel>`, not `void`
+  - File: `repository_sync_call.dart`
+- [ ] **T3.5.4** Fix `session.futureCallWithDelay()` method
+  - API changed in Serverpod 3 - find new scheduling method
+  - Files: `repository_sync_call.dart`, `bin/main.dart`
+- [ ] **T3.5.5** Fix `OneSignalService` static access error
+  - `Session.log` → use instance method or different logging
+  - File: `onesignal_service.dart`
+- [ ] **T3.5.6** Fix null safety issue in `NotificationService`
+  - Add null check for `_oneSignalService?.sendPushNotification()`
+  - File: `notification_service.dart`
 
 ## Phase 4: Backend Testing (Local)
 - [ ] **T4.1** Test `AuthEndpoint` - login with valid/invalid PAT
