@@ -1,0 +1,4 @@
+# Configuration for dart test
+tags:
+  integration:
+    # Integration tests require a running database

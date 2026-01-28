@@ -100,13 +100,18 @@
   - File: `notification_service.dart`
 
 ## Phase 4: Backend Testing (Local)
-- [ ] **T4.1** Test `AuthEndpoint` - login with valid/invalid PAT
-- [ ] **T4.2** Test `RepositoryEndpoint` - CRUD operations
-- [ ] **T4.3** Test `ActivityEndpoint` - list PRs/Issues, mark as read
-- [ ] **T4.4** Test `NotificationEndpoint` - list, mark read
+- [x] **T4.1** Test `AuthEndpoint` - login with valid/invalid PAT
+  - Integration tests: anonymous login, device ID handling, error cases
+- [x] **T4.2** Test `RepositoryEndpoint` - CRUD operations
+  - Model tests: create, update settings, list, delete with cascade
+- [x] **T4.3** Test `ActivityEndpoint` - list PRs/Issues, mark as read
+  - Model tests: PR/Issue CRUD, filtering, pagination, counts
+- [x] **T4.4** Test `NotificationEndpoint` - list, mark read
+  - Model tests: create, mark read, count unread, pagination
 - [ ] **T4.5** Test GitHub sync manually - verify data populates
 - [ ] **T4.6** Test error handling - rate limits, invalid repos, network errors
-- [ ] **T4.7** Write unit tests for critical services
+- [x] **T4.7** Write unit tests for critical services
+  - 42 integration tests passing (run with `dart test test/integration/ --concurrency=1`)
 
 ## Phase 5: Deploy Serverpod
 - [ ] **T5.1** Set up Serverpod Cloud account (or self-hosted)

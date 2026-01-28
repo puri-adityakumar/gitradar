@@ -1,0 +1,36 @@
+# Configuration for the test environment.
+
+# Configuration for the main API server.
+apiServer:
+  port: 9080
+  publicHost: localhost
+  publicPort: 9080
+  publicScheme: http
+
+# Configuration for the Insights server.
+insightsServer:
+  port: 9081
+  publicHost: localhost
+  publicPort: 9081
+  publicScheme: http
+
+# Configuration for the web server.
+webServer:
+  port: 9082
+  publicHost: localhost
+  publicPort: 9082
+  publicScheme: http
+
+# This is the database setup for your server.
+database:
+  host: localhost
+  port: 5433
+  name: gitradar_test
+  user: postgres
+  password: 'password'
+
+# This is the setup for your Redis instance.
+redis:
+  enabled: false
+  host: localhost
+  port: 6379
