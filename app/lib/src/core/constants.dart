@@ -5,15 +5,16 @@ class ServerConfig {
   /// Local development server
   static const String localUrl = 'http://localhost:8080/';
 
-  /// Production server (update when deployed)
-  static const String productionUrl = 'https://api.gitradar.app/';
+  /// Production server (Serverpod Cloud)
+  static const String productionUrl = 'https://gitradar.api.serverpod.space/';
 
   /// Current server URL based on environment
   static String get currentUrl {
-    // In debug mode, use local server
-    // In release mode, use production
+    // For testing, use production server
+    // TODO: Switch back to environment-based after testing
+    const bool useProduction = true; // Set to false for local dev
     const bool isProduction = bool.fromEnvironment('dart.vm.product');
-    return isProduction ? productionUrl : localUrl;
+    return (isProduction || useProduction) ? productionUrl : localUrl;
   }
 }
 

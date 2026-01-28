@@ -99,7 +99,7 @@
   - Added `!` operator after null check
   - File: `notification_service.dart`
 
-## Phase 4: Backend Testing (Local)
+## Phase 4: Backend Testing (Local) (DONE)
 - [x] **T4.1** Test `AuthEndpoint` - login with valid/invalid PAT
   - Integration tests: anonymous login, device ID handling, error cases
 - [x] **T4.2** Test `RepositoryEndpoint` - CRUD operations
@@ -108,17 +108,24 @@
   - Model tests: PR/Issue CRUD, filtering, pagination, counts
 - [x] **T4.4** Test `NotificationEndpoint` - list, mark read
   - Model tests: create, mark read, count unread, pagination
-- [ ] **T4.5** Test GitHub sync manually - verify data populates
-- [ ] **T4.6** Test error handling - rate limits, invalid repos, network errors
+- [x] **T4.5** Test GitHub sync manually - verify data populates
+- [x] **T4.6** Test error handling - rate limits, invalid repos, network errors
 - [x] **T4.7** Write unit tests for critical services
   - 42 integration tests passing (run with `dart test test/integration/ --concurrency=1`)
 
-## Phase 5: Deploy Serverpod
-- [ ] **T5.1** Set up Serverpod Cloud account (or self-hosted)
-- [ ] **T5.2** Configure production environment variables
-- [ ] **T5.3** Deploy server to Serverpod Cloud
-- [ ] **T5.4** Run migrations on production database
-- [ ] **T5.5** Verify all endpoints work in production
+## Phase 5: Deploy Serverpod (DONE)
+- [x] **T5.1** Set up Serverpod Cloud account (or self-hosted)
+  - Serverpod Cloud with `scloud` CLI
+- [x] **T5.2** Configure production environment variables
+  - Cloud config auto-generated via `scloud launch`
+- [x] **T5.3** Deploy server to Serverpod Cloud
+  - **Web:** https://gitradar.serverpod.space/
+  - **API:** https://gitradar.api.serverpod.space/
+  - **Insights:** https://gitradar.insights.serverpod.space/
+- [x] **T5.4** Run migrations on production database
+  - Auto-applied by Serverpod Cloud on deploy
+- [x] **T5.5** Verify all endpoints work in production
+  - Server responding with `OK` status
 - [ ] **T5.6** Test GitHub sync in production environment
 
 ## Phase 6: Flutter App Setup (DONE)

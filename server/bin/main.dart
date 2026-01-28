@@ -1,6 +1,7 @@
 import 'package:serverpod/serverpod.dart';
 import 'package:gitradar_server/server.dart';
 import 'package:gitradar_server/src/futures/repository_sync_call.dart';
+import 'package:gitradar_server/src/util/auth_handler.dart';
 
 void main(List<String> args) async {
   // Initialize Serverpod and connect it with your generated code.
@@ -8,6 +9,7 @@ void main(List<String> args) async {
     args,
     Protocol(),
     Endpoints(),
+    authenticationHandler: authenticationHandler,
   );
 
   // Register the repository sync future call
