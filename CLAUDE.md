@@ -30,6 +30,8 @@ dart run bin/main.dart --apply-migrations   # Run server (first time or after mi
 dart run bin/main.dart            # Run server (subsequent runs)
 dart test                         # Run all tests
 dart test test/integration/auth_endpoint_test.dart  # Run single test file
+dart analyze                      # Lint code
+dart format .                     # Format code
 ```
 
 ### Deployment (Serverpod Cloud)
@@ -51,6 +53,8 @@ flutter run -d chrome             # Run web
 flutter run -d macos              # Run macOS desktop
 flutter test                      # Run all tests
 flutter test test/widget_test.dart  # Run single test
+flutter analyze                   # Lint code
+dart format .                     # Format code
 ```
 
 ### After Model Changes
@@ -155,6 +159,12 @@ GoRouter configuration in `app/lib/src/routing/router.dart` includes auth redire
 - Use `sort=updated&direction=desc` to get recent changes first
 - Limit pagination (max 2 pages per sync for MVP)
 - Required PAT scopes: `repo` (private repos), `read:user` (optional)
+
+## Code Style
+
+- Use single quotes for strings (`'hello'` not `"hello"`)
+- Always declare return types
+- Prefer `const` constructors and declarations
 
 ## Naming Conventions
 
