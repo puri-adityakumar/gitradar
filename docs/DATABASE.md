@@ -1,50 +1,8 @@
-# GitRadar Database Documentation
+# GitRadar Database Schema
 
 ## Overview
 
-GitRadar uses PostgreSQL as its database, managed through Serverpod's ORM. The database stores user authentication data, watched repositories, synced GitHub activity (PRs/Issues), and in-app notifications.
-
-## Database Files
-
-| File | Purpose |
-|------|---------|
-| `server/lib/src/models/*.spy.yaml` | Model definitions (source of truth) |
-| `server/migrations/` | Auto-generated SQL migrations |
-| `server/docker-compose.yaml` | Local PostgreSQL 16 container |
-| `server/config/development.yaml` | DB connection config (dev) |
-| `server/config/passwords.yaml` | DB credentials |
-
-## Model Files
-
-```
-server/lib/src/models/
-├── user.spy.yaml              # GitHub-authenticated users
-├── user_preferences.spy.yaml  # Theme and app settings
-├── repository.spy.yaml        # Watched GitHub repositories
-├── pull_request.spy.yaml      # Synced pull requests
-├── issue.spy.yaml             # Synced issues
-└── notification.spy.yaml      # In-app notifications
-```
-
-## Schema Overview
-
-### Users & Preferences
-
-- **User**: Stores GitHub identity (id, username, avatar) and encrypted PAT for API access. The PAT is never sent to the client.
-- **UserPreferences**: One-to-one with User. Stores theme preference (light/dark/system).
-
-### Repository Tracking
-
-- **Repository**: Links a user to a GitHub repo they're watching. Each repo has independent notification settings (in-app, push, level). Tracks sync cursors for incremental updates.
-
-### GitHub Activity
-
-- **PullRequest**: Cached PR data from GitHub. Stores title, author, state (open/closed/merged), and read status. Limited to 50 per repo.
-- **Issue**: Similar to PR but includes labels as JSON. State is only open/closed.
-
-### Notifications
-
-- **Notification**: In-app alerts for new/updated PRs and issues. Links to the source entity and tracks read status.
+GitRadar uses PostgreSQL managed through Serverpod's ORM. The database stores user data, watched repositories, synced GitHub activity (PRs/Issues), and in-app notifications.
 
 ## Entity Relationship Diagram
 
@@ -72,7 +30,7 @@ server/lib/src/models/
 
 ```dbml
 // GitRadar Database Schema
-// Docs: https://dbml.dbdiagram.io/docs
+// Visualize at: https://dbdiagram.io
 
 Table users {
   id int [pk, increment]
@@ -80,7 +38,7 @@ Table users {
   github_username varchar [unique, not null]
   display_name varchar
   avatar_url varchar
-  encrypted_pat varchar [not null, note: 'AES-256 encrypted, server-only']
+  encrypted_pat varchar [note: 'AES-256 encrypted, server-only']
   onesignal_player_id varchar [note: 'Push notification device ID']
   last_validated_at timestamp
   created_at timestamp [default: `now()`]
@@ -95,7 +53,7 @@ Table users {
 Table user_preferences {
   id int [pk, increment]
   user_id int [unique, not null, ref: > users.id]
-  theme_mode varchar [not null, note: 'light | dark | system']
+  theme_mode varchar [not null, default: 'system', note: 'light | dark | system']
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
 
@@ -110,10 +68,10 @@ Table repositories {
   owner varchar [not null, note: 'GitHub owner/org']
   repo varchar [not null, note: 'Repository name']
   github_repo_id int [not null, note: 'Stable GitHub repo ID']
-  is_private bool [not null]
+  is_private bool [not null, default: false]
   in_app_notifications bool [not null, default: true]
   push_notifications bool [not null, default: false]
-  notification_level varchar [not null, note: 'all | mentions | none']
+  notification_level varchar [not null, default: 'all', note: 'all | mentions | none']
   last_synced_at timestamp
   last_pr_cursor timestamp [note: 'For incremental PR sync']
   last_issue_cursor timestamp [note: 'For incremental issue sync']
@@ -135,6 +93,7 @@ Table pull_requests {
   title varchar [not null]
   body text
   author varchar [not null]
+  author_avatar_url varchar
   state varchar [not null, note: 'open | closed | merged']
   html_url varchar [not null]
   github_created_at timestamp [not null]
@@ -159,6 +118,7 @@ Table issues {
   title varchar [not null]
   body text
   author varchar [not null]
+  author_avatar_url varchar
   state varchar [not null, note: 'open | closed']
   labels_json text [note: 'JSON array of label names']
   html_url varchar [not null]
@@ -194,9 +154,46 @@ Table notifications {
     repository_id
   }
 }
+
+// Response/Filter models (not persisted)
+// - AuthResponse: sessionToken, user
+// - PaginatedPullRequests: items, nextCursor, hasMore
+// - PaginatedIssues: items, nextCursor, hasMore
+// - PaginatedNotifications: items, nextCursor, hasMore
+// - ActivityCounts: openPullRequests, openIssues, unreadNotifications
+// - SyncResult: repositoryId, newPullRequests, updatedPullRequests, newIssues, updatedIssues, notificationsCreated, syncedAt
+// - PullRequestFilter: repositoryId, state, isRead
+// - IssueFilter: repositoryId, state, isRead
 ```
 
-## Database Commands
+## Model Files
+
+```
+server/lib/src/models/
+├── user.spy.yaml                 # GitHub-authenticated users
+├── user_preferences.spy.yaml     # Theme settings
+├── repository.spy.yaml           # Watched GitHub repositories
+├── pull_request.spy.yaml         # Synced pull requests
+├── issue.spy.yaml                # Synced issues
+├── notification.spy.yaml         # In-app notifications
+├── auth_response.spy.yaml        # Login response
+├── sync_result.spy.yaml          # Sync operation result
+├── activity_counts.spy.yaml      # Dashboard counts
+├── paginated_*.spy.yaml          # Pagination wrappers
+├── pull_request_filter.spy.yaml  # PR query filter
+└── issue_filter.spy.yaml         # Issue query filter
+```
+
+## Data Limits
+
+| Limit | Value | Reason |
+|-------|-------|--------|
+| Max repositories per user | 10 | MVP scope |
+| Max PRs per repository | 50 | Storage efficiency |
+| Max Issues per repository | 50 | Storage efficiency |
+| Sync interval | 5 minutes | GitHub rate limits |
+
+## Commands
 
 ```bash
 # Start PostgreSQL (Docker)
@@ -205,17 +202,17 @@ Table notifications {
 # Stop PostgreSQL
 ./scripts/db-stop.sh
 
-# Reset database (wipes all data)
+# Reset database (destructive)
 ./scripts/db-reset.sh
 
 # Generate migrations from models
-cd server && serverpod generate
+cd server && dart pub global run serverpod_cli generate
 
 # Apply migrations
 cd server && dart run bin/main.dart --apply-migrations
 ```
 
-## Connection Details (Development)
+## Connection (Development)
 
 | Setting | Value |
 |---------|-------|
@@ -223,13 +220,4 @@ cd server && dart run bin/main.dart --apply-migrations
 | Port | 5432 |
 | Database | gitradar |
 | User | postgres |
-| Password | password |
-
-## Data Limits (MVP)
-
-| Limit | Value |
-|-------|-------|
-| Max repositories per user | 10 |
-| Max PRs per repository | 50 |
-| Max issues per repository | 50 |
-| Sync interval | 5-10 minutes |
+| Password | (see `server/config/passwords.yaml`) |
