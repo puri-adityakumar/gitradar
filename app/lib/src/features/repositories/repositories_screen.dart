@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gitradar_client/gitradar_client.dart';
 import 'package:go_router/go_router.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../shared/widgets/empty_widget.dart';
 import '../../shared/widgets/error_widget.dart';
-import '../../shared/widgets/loading_widget.dart';
+import '../../shared/widgets/skeleton_loader.dart';
 import 'repositories_provider.dart';
 
 /// Repositories list screen.
@@ -17,11 +18,42 @@ class RepositoriesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reposAsync = ref.watch(repositoriesProvider);
+    final syncState = ref.watch(syncProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Repositories'),
+        title: reposAsync.whenData((repos) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Repositories'),
+              Text(
+                '${repos.length}/${AppLimits.maxRepositories} repositories',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          );
+        }).value ?? const Text('Repositories'),
         actions: [
+          // Sync button
+          IconButton(
+            icon: syncState.isSyncing
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  )
+                : const Icon(Icons.sync),
+            onPressed: syncState.isSyncing
+                ? null
+                : () => _onSync(context, ref),
+            tooltip: syncState.isSyncing ? 'Syncing...' : 'Sync now',
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () => context.push('${RoutePaths.repositories}/add'),
@@ -30,7 +62,10 @@ class RepositoriesScreen extends ConsumerWidget {
         ],
       ),
       body: reposAsync.when(
-        loading: () => const LoadingWidget(message: 'Loading repositories...'),
+        loading: () => SkeletonList(
+          itemCount: 3,
+          itemBuilder: (_, __) => const SkeletonRepositoryCard(),
+        ),
         error: (error, stack) => ErrorDisplay(
           message: 'Failed to load repositories:\n$error',
           onRetry: () => ref.invalidate(repositoriesProvider),
@@ -48,18 +83,122 @@ class RepositoriesScreen extends ConsumerWidget {
 
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(repositoriesProvider);
-              await ref.read(repositoriesProvider.future);
+              await ref.read(syncProvider.notifier).sync();
             },
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: repos.length,
-              itemBuilder: (context, index) => _RepositoryCard(repo: repos[index]),
+            child: Column(
+              children: [
+                // Last synced indicator
+                if (syncState.lastSyncedAt != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: Text(
+                      'Last synced ${timeago.format(syncState.lastSyncedAt!)}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: repos.length,
+                    itemBuilder: (context, index) {
+                      final repo = repos[index];
+                      return Dismissible(
+                        key: Key('repo-${repo.id}'),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.errorColor,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.delete,
+                            color: Colors.white,
+                          ),
+                        ),
+                        confirmDismiss: (direction) async {
+                          return await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Remove Repository'),
+                              content: Text(
+                                'Are you sure you want to remove ${repo.owner}/${repo.repo}? All tracked PRs, issues, and notifications will be deleted.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppTheme.errorColor,
+                                  ),
+                                  child: const Text('Remove'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        onDismissed: (direction) async {
+                          try {
+                            await ref.read(deleteRepositoryProvider)(repo.id!);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Removed ${repo.owner}/${repo.repo}'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to remove: $e'),
+                                  backgroundColor: AppTheme.errorColor,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: _RepositoryCard(repo: repo),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           );
         },
       ),
     );
+  }
+
+  Future<void> _onSync(BuildContext context, WidgetRef ref) async {
+    await ref.read(syncProvider.notifier).sync();
+
+    final syncState = ref.read(syncProvider);
+    if (context.mounted) {
+      if (syncState.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sync failed: ${syncState.error}'),
+            backgroundColor: AppTheme.errorColor,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sync completed!')),
+        );
+      }
+    }
   }
 }
 

@@ -7,7 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme.dart';
 import '../../shared/widgets/empty_widget.dart';
 import '../../shared/widgets/error_widget.dart';
-import '../../shared/widgets/loading_widget.dart';
+import '../../shared/widgets/skeleton_loader.dart';
+import '../repositories/repositories_provider.dart';
 import 'activity_provider.dart';
 
 /// Activity screen with tabs for PRs and Issues.
@@ -37,6 +38,8 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
   @override
   Widget build(BuildContext context) {
     final countsAsync = ref.watch(activityCountsProvider);
+    final reposAsync = ref.watch(repositoriesProvider);
+    final selectedRepoId = ref.watch(selectedRepositoryProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -85,11 +88,53 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [
-          _PullRequestsTab(),
-          _IssuesTab(),
+      body: Column(
+        children: [
+          // Repository filter chips
+          reposAsync.whenData((repos) {
+            if (repos.isEmpty) return const SizedBox.shrink();
+
+            return Container(
+              height: 48,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  FilterChip(
+                    label: const Text('All'),
+                    selected: selectedRepoId == null,
+                    onSelected: (_) {
+                      ref.read(selectedRepositoryProvider.notifier).state = null;
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  ...repos.map((repo) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(repo.repo),
+                      selected: selectedRepoId == repo.id,
+                      onSelected: (_) {
+                        ref.read(selectedRepositoryProvider.notifier).state =
+                            selectedRepoId == repo.id ? null : repo.id;
+                      },
+                    ),
+                  )),
+                ],
+              ),
+            );
+          }).value ?? const SizedBox.shrink(),
+
+          // Tab content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: const [
+                _PullRequestsTab(),
+                _IssuesTab(),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -122,7 +167,7 @@ class _PullRequestsTab extends ConsumerWidget {
     final prsAsync = ref.watch(pullRequestsProvider);
 
     return prsAsync.when(
-      loading: () => const LoadingWidget(message: 'Loading pull requests...'),
+      loading: () => const SkeletonList(itemCount: 4),
       error: (error, stack) => ErrorDisplay(
         message: 'Failed to load pull requests:\n$error',
         onRetry: () => ref.invalidate(pullRequestsProvider),
@@ -261,7 +306,7 @@ class _IssuesTab extends ConsumerWidget {
     final issuesAsync = ref.watch(issuesProvider);
 
     return issuesAsync.when(
-      loading: () => const LoadingWidget(message: 'Loading issues...'),
+      loading: () => const SkeletonList(itemCount: 4),
       error: (error, stack) => ErrorDisplay(
         message: 'Failed to load issues:\n$error',
         onRetry: () => ref.invalidate(issuesProvider),

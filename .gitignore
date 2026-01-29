@@ -56,3 +56,15 @@ coverage/
 **/config/credentials.json
 *.pem
 *.key
+
+# AI Agent directories
+.agent/
+.agents/
+.claude/
+.crush/
+.gemini/
+.goose/
+.opencode/
+
+# Screenshots (testing artifacts)
+screenshots/

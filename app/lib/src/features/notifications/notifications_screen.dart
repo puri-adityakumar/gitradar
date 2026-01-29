@@ -6,7 +6,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../core/theme.dart';
 import '../../shared/widgets/empty_widget.dart';
 import '../../shared/widgets/error_widget.dart';
-import '../../shared/widgets/loading_widget.dart';
+import '../../shared/widgets/skeleton_loader.dart';
 import 'notifications_provider.dart';
 
 /// Notifications screen.
@@ -34,7 +34,7 @@ class NotificationsScreen extends ConsumerWidget {
         ],
       ),
       body: notificationsAsync.when(
-        loading: () => const LoadingWidget(message: 'Loading notifications...'),
+        loading: () => const SkeletonList(itemCount: 5),
         error: (error, stack) => ErrorDisplay(
           message: 'Failed to load notifications:\n$error',
           onRetry: () => ref.invalidate(notificationsProvider),

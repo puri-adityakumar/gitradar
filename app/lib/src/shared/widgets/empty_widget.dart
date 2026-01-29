@@ -19,6 +19,9 @@ class EmptyWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -28,14 +31,14 @@ class EmptyWidget extends StatelessWidget {
             Icon(
               icon,
               size: 80,
-              color: Colors.grey.shade400,
+              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
             ),
             const SizedBox(height: 16),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.grey.shade700,
+              style: theme.textTheme.titleLarge?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
             ),
@@ -44,8 +47,8 @@ class EmptyWidget extends StatelessWidget {
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey.shade500,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.7),
                     ),
               ),
             ],

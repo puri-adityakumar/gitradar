@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:encrypt/encrypt.dart';
 
 import '../generated/protocol.dart';
+import '../services/sync_service.dart';
 import '../util/session_util.dart';
 
 /// Endpoint for managing watched GitHub repositories.
@@ -242,5 +243,42 @@ class RepositoryEndpoint extends Endpoint {
       'description': repoData['description'],
       'requires_pat': isPrivate,
     };
+  }
+
+  /// Manually trigger sync for all user's repositories.
+  /// Returns a list of sync results with statistics.
+  Future<List<SyncResult>> syncRepositories(Session session) async {
+    final userId = SessionUtil.requireUserId(session);
+
+    final user = await User.db.findById(session, userId);
+    if (user == null) {
+      throw Exception('User not found');
+    }
+
+    final repos = await Repository.db.find(
+      session,
+      where: (t) => t.userId.equals(userId),
+    );
+
+    if (repos.isEmpty) {
+      return [];
+    }
+
+    final syncService = SyncService();
+    final results = <SyncResult>[];
+
+    for (final repo in repos) {
+      try {
+        final result = await syncService.syncRepository(session, repo, user);
+        results.add(result);
+      } catch (e) {
+        session.log(
+          'Failed to sync repo ${repo.owner}/${repo.repo}: $e',
+          level: LogLevel.error,
+        );
+      }
+    }
+
+    return results;
   }
 }

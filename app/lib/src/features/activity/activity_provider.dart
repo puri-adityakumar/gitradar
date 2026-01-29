@@ -3,22 +3,37 @@ import 'package:gitradar_client/gitradar_client.dart';
 
 import '../../core/client.dart';
 
+/// Selected repository filter state (null = show all).
+final selectedRepositoryProvider = StateProvider.autoDispose<int?>((ref) => null);
+
 /// Activity counts provider.
 final activityCountsProvider = FutureProvider.autoDispose<ActivityCounts>((ref) async {
   final client = ref.watch(clientProvider);
   return await client.activity.getCounts();
 });
 
-/// Pull requests provider.
+/// Pull requests provider with filter support.
 final pullRequestsProvider = FutureProvider.autoDispose<PaginatedPullRequests>((ref) async {
   final client = ref.watch(clientProvider);
-  return await client.activity.listPullRequests(null, null);
+  final selectedRepoId = ref.watch(selectedRepositoryProvider);
+
+  final filter = selectedRepoId != null
+      ? PullRequestFilter(repositoryId: selectedRepoId)
+      : null;
+
+  return await client.activity.listPullRequests(filter, null);
 });
 
-/// Issues provider.
+/// Issues provider with filter support.
 final issuesProvider = FutureProvider.autoDispose<PaginatedIssues>((ref) async {
   final client = ref.watch(clientProvider);
-  return await client.activity.listIssues(null, null);
+  final selectedRepoId = ref.watch(selectedRepositoryProvider);
+
+  final filter = selectedRepoId != null
+      ? IssueFilter(repositoryId: selectedRepoId)
+      : null;
+
+  return await client.activity.listIssues(filter, null);
 });
 
 /// Mark as read provider.

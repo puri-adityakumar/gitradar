@@ -24,7 +24,8 @@ import 'package:gitradar_client/src/protocol/paginated_notifications.dart'
     as _i10;
 import 'package:gitradar_client/src/protocol/user_preferences.dart' as _i11;
 import 'package:gitradar_client/src/protocol/repository.dart' as _i12;
-import 'protocol.dart' as _i13;
+import 'package:gitradar_client/src/protocol/sync_result.dart' as _i13;
+import 'protocol.dart' as _i14;
 
 /// Endpoint for viewing pull requests and issues across all watched repositories.
 /// {@category Endpoint}
@@ -286,6 +287,15 @@ class EndpointRepository extends _i1.EndpointRef {
       'repo': repo,
     },
   );
+
+  /// Manually trigger sync for all user's repositories.
+  /// Returns a list of sync results with statistics.
+  _i2.Future<List<_i13.SyncResult>> syncRepositories() =>
+      caller.callServerEndpoint<List<_i13.SyncResult>>(
+        'repository',
+        'syncRepositories',
+        {},
+      );
 }
 
 class Client extends _i1.ServerpodClientShared {
@@ -308,7 +318,7 @@ class Client extends _i1.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i13.Protocol(),
+         _i14.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

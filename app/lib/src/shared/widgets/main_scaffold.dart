@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/constants.dart';
+import '../../features/notifications/notifications_provider.dart';
 
 /// Main scaffold with bottom navigation bar.
-class MainScaffold extends StatelessWidget {
+class MainScaffold extends ConsumerWidget {
   final Widget child;
 
   const MainScaffold({super.key, required this.child});
@@ -36,29 +38,40 @@ class MainScaffold extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCountAsync = ref.watch(unreadCountProvider);
+    final unreadCount = unreadCountAsync.valueOrNull ?? 0;
+
     return Scaffold(
       body: child,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _calculateSelectedIndex(context),
         onTap: (index) => _onItemTapped(context, index),
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.folder_outlined),
             activeIcon: Icon(Icons.folder),
             label: 'Repos',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.timeline_outlined),
             activeIcon: Icon(Icons.timeline),
             label: 'Activity',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_outlined),
-            activeIcon: Icon(Icons.notifications),
+            icon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text(unreadCount > 9 ? '9+' : '$unreadCount'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            activeIcon: Badge(
+              isLabelVisible: unreadCount > 0,
+              label: Text(unreadCount > 9 ? '9+' : '$unreadCount'),
+              child: const Icon(Icons.notifications),
+            ),
             label: 'Notifications',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),
             activeIcon: Icon(Icons.settings),
             label: 'Settings',

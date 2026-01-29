@@ -25,12 +25,22 @@ GitRadar is a GitHub monitoring platform built for the Serverpod 3 Global Hackat
 ```bash
 cd server
 dart pub get                      # Install dependencies
-serverpod generate                # Generate code (models, endpoints, migrations)
-dart run bin/main.dart --apply-migrations  # Run server (first time or after migrations)
+dart pub global run serverpod_cli generate  # Generate code (models, endpoints, migrations)
+dart run bin/main.dart --apply-migrations   # Run server (first time or after migrations)
 dart run bin/main.dart            # Run server (subsequent runs)
 dart test                         # Run all tests
-dart test test/unit/my_test.dart  # Run single test file
+dart test test/integration/auth_endpoint_test.dart  # Run single test file
 ```
+
+### Deployment (Serverpod Cloud)
+
+```bash
+dart pub global run serverpod_cloud_cli deploy      # Deploy to production
+dart pub global run serverpod_cloud_cli deployment list  # Check deployment status
+dart pub global run serverpod_cloud_cli log         # View server logs
+```
+
+**Production URL:** `https://gitradar.api.serverpod.space/`
 
 ### App (Flutter)
 
@@ -82,6 +92,8 @@ The `RepositorySyncFutureCall` in `server/lib/src/futures/repository_sync_call.d
 - User submits PAT → Server validates via GitHub `GET /user` → Creates/updates User record
 - User identity derived from GitHub (githubId, username, displayName, avatarUrl)
 - GitHub PAT stored server-side only, AES-256 encrypted via `EncryptionService`
+- Session token format: `base64(userId:timestamp)` - decoded by custom auth handler in `server/lib/src/util/auth_handler.dart`
+- Client stores token in SharedPreferences, sends via Bearer auth header
 - Supports anonymous mode (public repos only, 60 req/hr rate limit)
 - Never return GitHub tokens to client
 
@@ -102,7 +114,18 @@ indexes:
     unique: true
 ```
 
-After changes, run `./scripts/generate.sh` or `cd server && serverpod generate`.
+After changes, run `./scripts/generate.sh` or `cd server && dart pub global run serverpod_cli generate`.
+
+### App State Management
+
+The Flutter app uses **Riverpod** for state management and **GoRouter** for navigation:
+
+- `clientProvider` (`app/lib/src/core/client.dart`): Serverpod client with auth key provider
+- `sessionTokenProvider`: Manages session token in SharedPreferences
+- `authStateProvider` (`app/lib/src/providers/auth_provider.dart`): Tracks login state, used by GoRouter redirect guards
+- Feature-specific providers in `app/lib/src/features/{feature}/providers/`
+
+GoRouter configuration in `app/lib/src/routing/router.dart` includes auth redirect guards that check `authStateProvider`.
 
 ## MVP Scope Boundaries
 
@@ -157,9 +180,12 @@ gitradar/
 │   └── migrations/            # Database migrations
 ├── app/                       # Flutter application
 │   ├── lib/src/
-│   │   ├── features/          # Feature modules
-│   │   ├── core/              # Shared utilities, theme
+│   │   ├── features/          # Feature modules (auth, repositories, activity, notifications, settings)
+│   │   ├── providers/         # Global Riverpod providers (auth state)
+│   │   ├── routing/           # GoRouter config with auth guards
+│   │   ├── core/              # Shared utilities, theme, client setup
 │   │   └── generated/         # Serverpod client (DO NOT EDIT)
+├── gitradar_client/           # Auto-generated Serverpod client package
 ├── scripts/                   # Development helper scripts
 └── docs/                      # Documentation (PRD.md, setup guides)
 ```

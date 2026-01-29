@@ -73,3 +73,60 @@ final deleteRepositoryProvider = Provider.autoDispose<Future<void> Function(int)
     ref.invalidate(repositoriesProvider);
   };
 });
+
+/// Sync state for tracking sync progress.
+class SyncState {
+  final bool isSyncing;
+  final DateTime? lastSyncedAt;
+  final String? error;
+
+  const SyncState({
+    this.isSyncing = false,
+    this.lastSyncedAt,
+    this.error,
+  });
+
+  SyncState copyWith({
+    bool? isSyncing,
+    DateTime? lastSyncedAt,
+    String? error,
+  }) {
+    return SyncState(
+      isSyncing: isSyncing ?? this.isSyncing,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      error: error,
+    );
+  }
+}
+
+/// Sync provider for manual sync functionality.
+final syncProvider = StateNotifierProvider.autoDispose<SyncNotifier, SyncState>((ref) {
+  return SyncNotifier(ref);
+});
+
+class SyncNotifier extends StateNotifier<SyncState> {
+  final Ref _ref;
+
+  SyncNotifier(this._ref) : super(const SyncState());
+
+  Future<void> sync() async {
+    if (state.isSyncing) return;
+
+    state = state.copyWith(isSyncing: true, error: null);
+
+    try {
+      final client = _ref.read(clientProvider);
+      await client.repository.syncRepositories();
+
+      state = SyncState(
+        isSyncing: false,
+        lastSyncedAt: DateTime.now(),
+      );
+
+      // Invalidate all data providers to refresh
+      _ref.invalidate(repositoriesProvider);
+    } catch (e) {
+      state = state.copyWith(isSyncing: false, error: e.toString());
+    }
+  }
+}

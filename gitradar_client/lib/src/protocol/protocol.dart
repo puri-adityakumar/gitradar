@@ -26,6 +26,7 @@ import 'sync_result.dart' as _i13;
 import 'user.dart' as _i14;
 import 'user_preferences.dart' as _i15;
 import 'package:gitradar_client/src/protocol/repository.dart' as _i16;
+import 'package:gitradar_client/src/protocol/sync_result.dart' as _i17;
 export 'activity_counts.dart';
 export 'auth_response.dart';
 export 'issue.dart';
@@ -185,6 +186,10 @@ class Protocol extends _i1.SerializationManager {
       return (data as Map).map(
             (k, v) => MapEntry(deserialize<String>(k), deserialize<dynamic>(v)),
           )
+          as T;
+    }
+    if (t == List<_i17.SyncResult>) {
+      return (data as List).map((e) => deserialize<_i17.SyncResult>(e)).toList()
           as T;
     }
     return super.deserialize<T>(data, t);
