@@ -104,6 +104,52 @@ final syncProvider = StateNotifierProvider.autoDispose<SyncNotifier, SyncState>(
   return SyncNotifier(ref);
 });
 
+/// Default example repositories to seed for new users.
+const defaultExampleRepos = [
+  {'owner': 'flutter', 'repo': 'flutter'},
+  {'owner': 'serverpod', 'repo': 'serverpod'},
+  {'owner': 'vercel', 'repo': 'next.js'},
+  {'owner': 'puri-adityakumar', 'repo': 'astraa'},
+];
+
+/// Seed default repositories provider.
+/// Returns true if seeding was performed, false if user already had repos.
+final seedDefaultReposProvider = FutureProvider.autoDispose<bool>((ref) async {
+  final client = ref.read(clientProvider);
+
+  // Check if user already has repositories
+  final existingRepos = await client.repository.listRepositories();
+  if (existingRepos.isNotEmpty) {
+    return false; // User already has repos, skip seeding
+  }
+
+  // Add default example repositories
+  int added = 0;
+  for (final repo in defaultExampleRepos) {
+    try {
+      await client.repository.addRepository(repo['owner']!, repo['repo']!);
+      added++;
+    } catch (e) {
+      // Silently ignore errors (rate limit, already exists, etc.)
+      print('Failed to seed ${repo['owner']}/${repo['repo']}: $e');
+    }
+  }
+
+  // Trigger sync if we added repos
+  if (added > 0) {
+    try {
+      await client.repository.syncRepositories();
+    } catch (e) {
+      print('Failed to sync after seeding: $e');
+    }
+  }
+
+  // Invalidate repositories to refresh the list
+  ref.invalidate(repositoriesProvider);
+
+  return added > 0;
+});
+
 class SyncNotifier extends StateNotifier<SyncState> {
   final Ref _ref;
 

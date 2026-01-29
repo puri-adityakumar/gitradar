@@ -136,7 +136,9 @@ gitradar/
 │   ├── db-stop.sh             # Stop PostgreSQL
 │   ├── db-reset.sh            # Reset database
 │   ├── server-start.sh        # Start server
-│   └── generate.sh            # Regenerate code
+│   ├── generate.sh            # Regenerate code
+│   ├── build-android.sh       # Build Android APK
+│   └── seed-data.sh           # Seed demo repositories
 │
 └── docs/                      # Documentation
     ├── ARCHITECTURE.md        # Technical architecture
@@ -210,9 +212,38 @@ class MyScreen extends ConsumerWidget {
 
 3. Add provider if needed in same feature folder
 
+## Seed Demo Data
+
+Populate the app with demo repositories:
+
+```bash
+# Local development
+./scripts/seed-data.sh
+
+# Production
+./scripts/seed-data.sh https://gitradar.api.serverpod.space
+```
+
+This adds:
+- `flutter/flutter`
+- `serverpod/serverpod`
+- `puri-adityakumar/astraa`
+
+## Build Android APK
+
+```bash
+# Debug build
+./scripts/build-android.sh
+
+# Release build
+./scripts/build-android.sh release
+```
+
+APK location: `app/build/app/outputs/flutter-apk/`
+
 ## Deployment
 
-### Deploy to Serverpod Cloud
+### Deploy Server to Serverpod Cloud
 
 ```bash
 dart pub global run serverpod_cloud_cli deploy
@@ -229,6 +260,31 @@ dart pub global run serverpod_cloud_cli deployment list
 ```bash
 dart pub global run serverpod_cloud_cli log
 ```
+
+### Deploy Web App to Vercel
+
+**Option 1: Manual Deploy**
+
+```bash
+# Build web
+cd app && flutter build web --release
+
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy
+cd build/web && vercel
+```
+
+**Option 2: GitHub Actions (Automatic)**
+
+1. Create Vercel project at [vercel.com](https://vercel.com)
+2. Get tokens from Vercel dashboard:
+   - `VERCEL_TOKEN` - Account Settings → Tokens
+   - `VERCEL_ORG_ID` - Project Settings → General
+   - `VERCEL_PROJECT_ID` - Project Settings → General
+3. Add secrets to GitHub repo: Settings → Secrets → Actions
+4. Push to `main` branch - auto-deploys
 
 ## Troubleshooting
 

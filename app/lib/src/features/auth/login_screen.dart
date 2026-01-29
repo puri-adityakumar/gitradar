@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 import '../../shared/widgets/loading_widget.dart';
+import '../repositories/repositories_provider.dart';
 import 'auth_provider.dart';
 
 /// Login screen with anonymous and PAT options.
@@ -31,6 +32,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await ref.read(authStateProvider.notifier).loginAnonymous();
+
+      // Seed default example repos for new users
+      if (mounted) {
+        try {
+          await ref.read(seedDefaultReposProvider.future);
+        } catch (e) {
+          // Ignore seeding errors, continue to app
+          debugPrint('Seeding failed: $e');
+        }
+      }
+
       if (mounted) {
         context.go(RoutePaths.repositories);
       }
@@ -66,6 +78,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await ref.read(authStateProvider.notifier).loginWithPat(pat);
+
+      // Seed default example repos for new users
+      if (mounted) {
+        try {
+          await ref.read(seedDefaultReposProvider.future);
+        } catch (e) {
+          // Ignore seeding errors, continue to app
+          debugPrint('Seeding failed: $e');
+        }
+      }
+
       if (mounted) {
         context.go(RoutePaths.repositories);
       }
