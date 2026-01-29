@@ -38,10 +38,6 @@ server/test/integration/test_tools/
 *.app
 
 # Flutter app - platform folders (ignore unused platforms)
-app/ios/
-app/linux/
-app/macos/
-app/windows/
 app/.metadata
 
 # Docker
@@ -65,5 +61,3 @@ coverage/
 .goose/
 .opencode/
 
-# Screenshots (testing artifacts)
-screenshots/
