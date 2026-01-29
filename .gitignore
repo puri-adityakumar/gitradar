@@ -37,8 +37,7 @@ server/test/integration/test_tools/
 *.ipa
 *.app
 
-# Flutter app - platform folders (web-first project, ignore mobile platforms)
-app/android/
+# Flutter app - platform folders (ignore unused platforms)
 app/ios/
 app/linux/
 app/macos/
