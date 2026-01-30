@@ -2,18 +2,14 @@ import 'dart:convert';
 
 import 'package:serverpod/serverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:encrypt/encrypt.dart';
 
 import '../generated/protocol.dart';
+import '../services/encryption_service.dart';
 import '../util/session_util.dart';
 
 /// Authentication endpoint using GitHub PAT (optional).
 /// Supports both authenticated (with PAT) and anonymous (public repos only) modes.
 class AuthEndpoint extends Endpoint {
-  // AES encryption key - in production, load from environment variable
-  static final _encryptionKey = Key.fromLength(32);
-  static final _iv = IV.fromLength(16);
-  static final _encrypter = Encrypter(AES(_encryptionKey));
 
   /// Validates PAT against GitHub API, creates/updates user, returns session token.
   /// Use this for full access (private repos, higher rate limits).
@@ -40,7 +36,7 @@ class AuthEndpoint extends Endpoint {
     final avatarUrl = githubUser['avatar_url'] as String?;
 
     // Encrypt the PAT for storage
-    final encryptedPat = _encrypter.encrypt(githubPat, iv: _iv).base64;
+    final encryptedPat = EncryptionService.encrypt(githubPat);
 
     // Check if user exists (by GitHub ID)
     var existingUser = await User.db.findFirstRow(
@@ -161,7 +157,7 @@ class AuthEndpoint extends Endpoint {
     final now = DateTime.now();
 
     // Encrypt the PAT
-    final encryptedPat = _encrypter.encrypt(githubPat, iv: _iv).base64;
+    final encryptedPat = EncryptionService.encrypt(githubPat);
 
     // Update user with GitHub info
     existingUser.githubId = githubUser['id'] as int;
@@ -201,7 +197,7 @@ class AuthEndpoint extends Endpoint {
     }
 
     // Decrypt PAT and re-validate with GitHub
-    final pat = _encrypter.decrypt64(user.encryptedPat!, iv: _iv);
+    final pat = EncryptionService.decrypt(user.encryptedPat!);
 
     final response = await http.get(
       Uri.parse('https://api.github.com/user'),

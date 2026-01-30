@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:serverpod/serverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:encrypt/encrypt.dart';
 
 import '../generated/protocol.dart';
+import '../services/encryption_service.dart';
 import '../services/sync_service.dart';
 import '../util/session_util.dart';
 
@@ -13,11 +13,6 @@ import '../util/session_util.dart';
 /// Anonymous users can only track public repositories.
 class RepositoryEndpoint extends Endpoint {
   static const _maxRepositoriesPerUser = 10;
-
-  // Encryption setup (should match AuthEndpoint)
-  static final _encryptionKey = Key.fromLength(32);
-  static final _iv = IV.fromLength(16);
-  static final _encrypter = Encrypter(AES(_encryptionKey));
 
   /// Add a repository to the user's watchlist.
   /// Anonymous users can only add public repositories.
@@ -67,7 +62,7 @@ class RepositoryEndpoint extends Endpoint {
     };
 
     if (hasPat) {
-      final pat = _encrypter.decrypt64(user.encryptedPat!, iv: _iv);
+      final pat = EncryptionService.decrypt(user.encryptedPat!);
       headers['Authorization'] = 'Bearer $pat';
     }
 
@@ -78,16 +73,21 @@ class RepositoryEndpoint extends Endpoint {
     );
 
     if (response.statusCode == 404) {
-      throw Exception('Repository not found on GitHub');
+      throw ApiException(message: 'Repository not found on GitHub', code: 'NOT_FOUND');
     }
 
-    if (response.statusCode == 403) {
-      throw Exception(
-          'Rate limit exceeded. Try again later or add a GitHub PAT for higher limits.');
+    if (response.statusCode == 403 || response.statusCode == 429) {
+      throw ApiException(
+        message: 'GitHub rate limit exceeded. Please add a GitHub PAT in settings for higher limits (5000 req/hr vs 60 req/hr).',
+        code: 'RATE_LIMIT',
+      );
     }
 
     if (response.statusCode != 200) {
-      throw Exception('Failed to validate repository (status: ${response.statusCode})');
+      throw ApiException(
+        message: 'Failed to validate repository (GitHub returned ${response.statusCode})',
+        code: 'GITHUB_ERROR',
+      );
     }
 
     final repoData = jsonDecode(response.body) as Map<String, dynamic>;
@@ -214,7 +214,7 @@ class RepositoryEndpoint extends Endpoint {
     if (userId != null) {
       final user = await User.db.findById(session, userId);
       if (user != null && user.encryptedPat != null) {
-        final pat = _encrypter.decrypt64(user.encryptedPat!, iv: _iv);
+        final pat = EncryptionService.decrypt(user.encryptedPat!);
         headers['Authorization'] = 'Bearer $pat';
       }
     }
