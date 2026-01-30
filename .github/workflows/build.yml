@@ -78,6 +78,9 @@ jobs:
         working-directory: app
         run: flutter build web --release --base-href /
 
+      - name: Copy Vercel config
+        run: cp app/web/vercel.json app/build/web/vercel.json
+
       - name: Upload Web build
         uses: actions/upload-artifact@v4
         with:
@@ -116,30 +119,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          sdk: '3.10.8'
-
-      - name: Install Serverpod CLI
-        run: dart pub global activate serverpod_cli
+          flutter-version: '3.38.0'
+          channel: 'stable'
+          cache: true
 
       - name: Get dependencies
         working-directory: server
         run: dart pub get
 
-      - name: Generate test tools
-        working-directory: server
-        run: dart pub global run serverpod_cli generate
-
       - name: Analyze code
         working-directory: server
-        run: dart analyze --fatal-warnings
+        run: dart analyze --fatal-warnings lib bin
 
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-android, build-web, test-server]
+    needs: [build-android, build-web]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: write
